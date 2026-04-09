@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import Script from "next/script";
 import { Geist } from "next/font/google";
 import "./globals.css";
 
@@ -21,6 +22,10 @@ export default function RootLayout({
   return (
     <html lang="ko" className={geistSans.variable}>
       <body className="antialiased selection:bg-black selection:text-white">
+        <Script
+          src="https://unpkg.com/react-grab/dist/index.global.js"
+          strategy="afterInteractive"
+        />
         {children}
       </body>
     </html>

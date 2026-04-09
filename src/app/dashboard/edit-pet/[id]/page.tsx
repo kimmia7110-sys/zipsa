@@ -2,28 +2,19 @@
 
 import { supabase } from "@/lib/supabase";
 import { useState, useEffect } from "react";
-import { useRouter } from "next/navigation";
+import { useRouter, useParams } from "next/navigation";
 import Link from "next/link";
-
-const PixelCharacter = ({ color = "black" }: { color?: string }) => (
-  <svg width="48" height="48" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" className="animate-pulse">
-    <rect x="6" y="8" width="12" height="10" fill={color} />
-    <rect x="8" y="6" width="2" height="2" fill={color} />
-    <rect x="14" y="6" width="2" height="2" fill={color} />
-    <rect x="9" y="10" width="1" height="1" fill="white" />
-    <rect x="14" y="10" width="1" height="1" fill="white" />
-    <rect x="6" y="18" width="2" height="2" fill={color} />
-    <rect x="16" y="18" width="2" height="2" fill={color} />
-  </svg>
-);
 
 const BREED_DATA: Record<string, string[]> = {
   dog: ['말티즈', '푸들', '포메라니안', '치와와', '시바견', '골든 리트리버', '진돗개', '비숑 프리제', '웰시코기', '기타'],
   cat: ['코리안 숏헤어', '페르시안', '러시안 블루', '샴', '스코티쉬 폴드', '먼치킨', '뱅갈', '랙돌', '브리티시 숏헤어', '기타']
 };
 
-export default function AddPetPage() {
+export default function EditPetPage() {
   const router = useRouter();
+  const params = useParams();
+  const petId = params.id as string;
+
   const [petName, setPetName] = useState("");
   const [mainCategory, setMainCategory] = useState("");
   const [subCategory, setSubCategory] = useState("");
@@ -33,8 +24,51 @@ export default function AddPetPage() {
   const [gender, setGender] = useState("");
   const [previewImage, setPreviewImage] = useState<string | null>(null);
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
-  const [isDone, setIsDone] = useState(false);
-  const [loading, setLoading] = useState(false);
+  const [loading, setLoading] = useState(true);
+  const [saving, setSaving] = useState(false);
+
+  useEffect(() => {
+    fetchPet();
+  }, [petId]);
+
+  const fetchPet = async () => {
+    const { data: pet, error } = await supabase
+      .from("pets")
+      .select("*")
+      .eq("id", petId)
+      .single();
+
+    if (error || !pet) {
+      alert("아이 정보를 정보를 불러오는데 실패했습니다.");
+      router.push("/dashboard");
+      return;
+    }
+
+    setPetName(pet.name);
+    setPreviewImage(pet.photo_url);
+    setBirthDate(pet.birth_date || "");
+    setAdoptionDate(pet.adoption_date || "");
+    setGender(pet.gender || "");
+    
+    // Parse species string
+    if (pet.species.startsWith("강아지")) {
+      setMainCategory("dog");
+      const sub = pet.species.match(/\((.*)\)/)?.[1];
+      if (sub) setSubCategory(sub);
+    } else if (pet.species.startsWith("고양이")) {
+      setMainCategory("cat");
+      const sub = pet.species.match(/\((.*)\)/)?.[1];
+      if (sub) setSubCategory(sub);
+    } else if (pet.species.startsWith("기타")) {
+      setMainCategory("other");
+      const other = pet.species.match(/\((.*)\)/)?.[1];
+      if (other) setOtherInput(other);
+    } else {
+      setMainCategory(pet.species.toLowerCase());
+    }
+    
+    setLoading(false);
+  };
 
   const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -50,28 +84,16 @@ export default function AddPetPage() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    setLoading(true);
+    setSaving(true);
 
     try {
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user) throw new Error("로그인이 필요합니다.");
+      let photoUrl = previewImage;
 
-      // 1. Get profile/family_id
-      const { data: profile } = await supabase
-        .from("profiles")
-        .select("family_id")
-        .eq("id", user.id)
-        .single();
-
-      if (!profile?.family_id) throw new Error("가족 그룹이 없습니다.");
-
-      let photoUrl = null;
-
-      // 2. Upload photo if selected
+      // 1. Upload new photo if selected
       if (selectedFile) {
         const fileExt = selectedFile.name.split('.').pop();
         const fileName = `${Math.random()}.${fileExt}`;
-        const filePath = `${profile.family_id}/${fileName}`;
+        const filePath = `pet-photos/${fileName}`;
 
         const { error: uploadError } = await supabase.storage
           .from('pet-photos')
@@ -86,11 +108,7 @@ export default function AddPetPage() {
         photoUrl = publicUrl;
       }
 
-      // 3. Validation
-      if (!gender) throw new Error("아이의 성별을 선택해 주세요.");
-      if (!birthDate) throw new Error("아이의 생년월일을 선택해 주세요.");
-
-      // 4. Save pet record
+      // 2. Prepare final species string
       let finalSpecies = "";
       if (mainCategory === "dog") finalSpecies = `강아지 (${subCategory})`;
       else if (mainCategory === "cat") finalSpecies = `고양이 (${subCategory})`;
@@ -99,54 +117,59 @@ export default function AddPetPage() {
       else if (mainCategory === "rabbit") finalSpecies = "토끼";
       else if (mainCategory === "ferret") finalSpecies = "페럿";
 
-      if (!finalSpecies || ( (mainCategory === 'dog' || mainCategory === 'cat') && !subCategory)) {
-        throw new Error("아이의 종류를 정확히 선택해 주세요.");
-      }
+      // 3. Validation
+      if (!gender) throw new Error("아이의 성별을 선택해 주세요.");
+      if (!birthDate) throw new Error("아이의 생년월일을 선택해 주세요.");
 
-      const { error: insertError } = await supabase
+      // 4. Update pet record
+      const { error: updateError } = await supabase
         .from("pets")
-        .insert([{
-          family_id: profile.family_id,
+        .update({
           name: petName,
           species: finalSpecies,
           photo_url: photoUrl,
           birth_date: birthDate,
           adoption_date: adoptionDate || null,
           gender: gender,
-        }]);
+        })
+        .eq("id", petId);
 
-      if (insertError) throw insertError;
+      if (updateError) throw updateError;
 
-      setIsDone(true);
-      setTimeout(() => {
-        router.push("/dashboard");
-      }, 2000);
+      alert("아이 정보가 수정되었습니다.");
+      router.push("/dashboard");
     } catch (error: any) {
-      alert(error.message || "등록 중 오류가 발생했습니다.");
+      alert(error.message || "수정 중 오류가 발생했습니다.");
     } finally {
-      setLoading(false);
+      setSaving(false);
     }
   };
+
+  if (loading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-white">
+        <p className="text-xs tracking-[0.2em] font-light animate-pulse uppercase">정보 불러오는 중...</p>
+      </div>
+    );
+  }
 
   return (
     <main className="min-h-screen bg-white flex flex-col items-center px-6 py-20 font-light">
       <div className="w-full max-w-[450px] space-y-16">
-        {/* Header */}
         <header className="space-y-4">
           <Link href="/dashboard" className="text-[10px] tracking-widest text-zinc-400 uppercase hover:text-black transition-colors">
             ← 취소
           </Link>
           <div className="pt-4">
-            <h1 className="text-3xl font-light tracking-tighter">우리 아이 등록하기</h1>
+            <h1 className="text-3xl font-light tracking-tighter">정보 수정하기</h1>
             <p className="text-sm text-zinc-400 mt-2 leading-relaxed">
-              "안녕 집사야! 네가 집착할 내 이름을 알려줘."
+              아이의 이름, 종류, 사진을 최신 정보로 변경해 주세요.
             </p>
           </div>
         </header>
 
-        {/* Form */}
         <form onSubmit={handleSubmit} className="space-y-12">
-          {/* Photo Upload Section */}
+          {/* Photo Section */}
           <div className="space-y-4">
             <h3 className="text-lg font-normal text-black tracking-tight">프로필 사진</h3>
             <div className="flex justify-center pt-4">
@@ -156,7 +179,7 @@ export default function AddPetPage() {
                 ) : (
                   <div className="text-center space-y-1">
                     <span className="text-[24px] font-thin text-zinc-300">+</span>
-                    <span className="text-[10px] text-zinc-400 uppercase tracking-tighter group-hover:text-black">프로필 사진 업로드</span>
+                    <span className="text-[10px] text-zinc-400 uppercase tracking-tighter">사진 변경</span>
                   </div>
                 )}
                 <input type="file" className="hidden" accept="image/*" onChange={handleImageUpload} />
@@ -230,7 +253,7 @@ export default function AddPetPage() {
                     value={otherInput}
                     onChange={(e) => setOtherInput(e.target.value)}
                     className="input-minimal"
-                    placeholder="아이의 종류를 직접 입력하세요 (예: 거북이, 고슴도치 등)"
+                    placeholder="아이의 종류를 직접 입력하세요"
                   />
                 </div>
               )}
@@ -276,26 +299,15 @@ export default function AddPetPage() {
                   onChange={(e) => setAdoptionDate(e.target.value)}
                   className="input-minimal uppercase"
                 />
-                <p className="text-[9px] text-zinc-400 mt-2 uppercase tracking-tight">가족이 된 특별한 날을 기록해 주세요.</p>
               </div>
             </div>
           </div>
 
-          <button type="submit" disabled={loading} className="w-full btn-black py-5 text-sm">
-            {loading ? "등록 중..." : "등록 완료"}
+          <button type="submit" disabled={saving} className="w-full btn-black py-5 text-sm">
+            {saving ? "저장 중..." : "수정 완료"}
           </button>
         </form>
       </div>
-
-      {/* Success Popup */}
-      {isDone && (
-        <div className="fixed inset-0 bg-white/90 backdrop-blur-sm flex items-center justify-center z-50 animate-in fade-in duration-500">
-          <div className="text-center space-y-6">
-            <h2 className="text-xl font-light tracking-tight">"이제부터 지독하게 기록해줄게!"</h2>
-            <p className="text-xs text-zinc-400 animate-pulse">대시보드로 이동 중...</p>
-          </div>
-        </div>
-      )}
     </main>
   );
 }

@@ -1,5 +1,7 @@
 "use client";
 
+import { supabase } from "@/lib/supabase";
+import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { useState } from "react";
 
@@ -20,12 +22,28 @@ const PixelDog = () => (
 );
 
 export default function LandingPage() {
+  const router = useRouter();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [loading, setLoading] = useState(false);
 
-  const handleLogin = (e: React.FormEvent) => {
+  const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
-    console.log("Login attempt:", { email, password });
+    setLoading(true);
+    try {
+      const { error } = await supabase.auth.signInWithPassword({
+        email,
+        password,
+      });
+
+      if (error) throw error;
+
+      router.push("/dashboard");
+    } catch (error: any) {
+      alert(error.message || "로그인 중 오류가 발생했습니다.");
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (
@@ -44,7 +62,7 @@ export default function LandingPage() {
         <form onSubmit={handleLogin} className="space-y-8 text-left">
           <div className="space-y-6">
             <div className="group">
-              <label className="label-minimal">Email</label>
+              <label className="label-minimal">이메일</label>
               <input
                 type="email"
                 required
@@ -55,7 +73,7 @@ export default function LandingPage() {
               />
             </div>
             <div className="group">
-              <label className="label-minimal">Password</label>
+              <label className="label-minimal">비밀번호</label>
               <input
                 type="password"
                 required
@@ -67,14 +85,14 @@ export default function LandingPage() {
             </div>
           </div>
 
-          <button type="submit" className="w-full btn-black">
-            로그인
+          <button type="submit" disabled={loading} className="w-full btn-black">
+            {loading ? "로그인 중..." : "로그인"}
           </button>
         </form>
 
         {/* Footer Links */}
         <div className="pt-20 space-y-4">
-          <p className="text-[11px] text-zinc-400">
+          <p className="text-[11px] text-zinc-400 mt-4">
             아직 회원이 아니신가요?{" "}
             <Link href="/signup" className="text-black underline underline-offset-4 decoration-[0.5px]">
               회원가입

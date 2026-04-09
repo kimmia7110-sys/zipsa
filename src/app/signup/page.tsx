@@ -2,15 +2,21 @@
 
 import Link from "next/link";
 import { useState } from "react";
-
+import { supabase } from "@/lib/supabase";
+import { generateInviteCode } from "@/lib/utils";
+import { useRouter } from "next/navigation";
 import { regionsData } from "@/lib/regions";
 
 export default function SignUpPage() {
+  const router = useRouter();
+  const [loading, setLoading] = useState(false);
+  const [nicknameStatus, setNicknameStatus] = useState<'idle' | 'checking' | 'available' | 'taken'>('idle');
   const [formData, setFormData] = useState({
     email: "",
     password: "",
     confirmPassword: "",
     name: "",
+    nickname: "",
     phone: "--",
     gender: "",
     address: " ",
@@ -25,19 +31,102 @@ export default function SignUpPage() {
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
     const { name, value } = e.target;
     setFormData((prev) => ({ ...prev, [name]: value }));
+    if (name === 'nickname') setNicknameStatus('idle');
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const checkNickname = async () => {
+    if (!formData.nickname) return;
+    setNicknameStatus('checking');
+    const { data, error } = await supabase
+      .from('profiles')
+      .select('nickname')
+      .eq('nickname', formData.nickname)
+      .maybeSingle();
+    
+    if (error) {
+      console.error(error);
+      setNicknameStatus('idle');
+      return;
+    }
+
+    setNicknameStatus(data ? 'taken' : 'available');
+  };
+
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (formData.password !== formData.confirmPassword) {
       alert("비밀번호가 일치하지 않습니다.");
       return;
     }
-    const finalData = {
-      ...formData,
-      inviteCode: hasInviteCode ? formData.inviteCode : "AUTO_GENERATE",
-    };
-    console.log("Sign up attempt:", finalData);
+
+    setLoading(true);
+    try {
+      // 1. Sign up user
+      const { data: authData, error: authError } = await supabase.auth.signUp({
+        email: formData.email,
+        password: formData.password,
+        options: {
+          data: {
+            name: formData.name,
+          },
+        },
+      });
+
+      if (authError) throw authError;
+      if (!authData.user) throw new Error("가입 중 오류가 발생했습니다.");
+
+      let familyId = null;
+
+      if (hasInviteCode === true) {
+        // 2a. Find family by invite code
+        const { data: familyData, error: familyError } = await supabase
+          .from("families")
+          .select("id")
+          .eq("invite_code", formData.inviteCode.toUpperCase())
+          .single();
+
+        if (familyError || !familyData) {
+          throw new Error("유효하지 않은 초대 코드입니다.");
+        }
+        familyId = familyData.id;
+      } else {
+        // 2b. Create new family
+        const newInviteCode = generateInviteCode();
+        const { data: familyData, error: familyError } = await supabase
+          .from("families")
+          .insert([{ invite_code: newInviteCode, name: `${formData.name}님의 가족` }])
+          .select()
+          .single();
+
+        if (familyError) throw familyError;
+        familyId = familyData.id;
+      }
+
+      // 3. Update profile with extra info and family_id
+      const { error: profileError } = await supabase
+        .from("profiles")
+        .update({
+          family_id: familyId,
+          nickname: formData.nickname,
+          phone: formData.phone,
+          gender: formData.gender,
+          address: formData.address,
+        })
+        .eq("id", authData.user.id);
+
+      if (profileError) throw profileError;
+
+      alert("회원가입이 완료되었습니다!");
+      router.push("/");
+    } catch (error: any) {
+      if (error.code === "23505" && error.message.includes("nickname")) {
+        alert("이미 사용 중인 닉네임입니다. 다른 닉네임을 입력해 주세요.");
+      } else {
+        alert(error.message || "오류가 발생했습니다.");
+      }
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (
@@ -46,7 +135,7 @@ export default function SignUpPage() {
         {/* Header */}
         <header className="space-y-2">
           <Link href="/" className="text-[10px] tracking-widest text-zinc-400 uppercase hover:text-black transition-colors">
-            ← BACK TO LOGIN
+            ← 로그인으로 돌아가기
           </Link>
           <h1 className="text-3xl font-light tracking-tighter pt-4">회원가입</h1>
           <p className="text-xs text-zinc-400 font-light">나와 우리 반려동물을 위한 지독한 공간</p>
@@ -57,9 +146,9 @@ export default function SignUpPage() {
           <div className="space-y-10">
             {/* Account Info */}
             <div className="space-y-10 pb-6 border-b border-zinc-100">
-              <label className="label-minimal text-black">Account</label>
+              <h3 className="text-lg font-normal text-black tracking-tight">계정 정보</h3>
               <div className="group">
-                <label className="label-minimal">Email</label>
+                <label className="label-minimal">이메일</label>
                 <input
                   type="email"
                   name="email"
@@ -71,7 +160,7 @@ export default function SignUpPage() {
                 />
               </div>
               <div className="group">
-                <label className="label-minimal">Password</label>
+                <label className="label-minimal">비밀번호</label>
                 <input
                   type="password"
                   name="password"
@@ -83,7 +172,7 @@ export default function SignUpPage() {
                 />
               </div>
               <div className="group">
-                <label className="label-minimal">Confirm Password</label>
+                <label className="label-minimal">비밀번호 확인</label>
                 <input
                   type="password"
                   name="confirmPassword"
@@ -93,29 +182,70 @@ export default function SignUpPage() {
                   className="input-minimal"
                   placeholder="비밀번호를 한번 더 입력하세요"
                 />
+                {formData.confirmPassword && (
+                  <p className={`text-[10px] mt-2 ${formData.password === formData.confirmPassword ? 'text-zinc-900' : 'text-zinc-300'}`}>
+                    {formData.password === formData.confirmPassword 
+                      ? "✓ 비밀번호가 일치합니다." 
+                      : "✕ 비밀번호가 일치하지 않습니다."}
+                  </p>
+                )}
               </div>
             </div>
 
             {/* Profile Info */}
             <div className="group">
-              <label className="label-minimal text-black mb-6">Profile</label>
-              <div className="group mt-4">
-                <label className="label-minimal">Name</label>
-                <input
-                  type="text"
-                  name="name"
-                  required
-                  value={formData.name}
-                  onChange={handleChange}
-                  className="input-minimal"
-                  placeholder="이름을 입력하세요"
-                />
+              <h3 className="text-lg font-normal text-black mb-6 tracking-tight">프로필 정보</h3>
+              <div className="space-y-10 mt-4">
+                <div className="group">
+                  <label className="label-minimal">보호자 성함</label>
+                  <input
+                    type="text"
+                    name="name"
+                    required
+                    value={formData.name}
+                    onChange={handleChange}
+                    className="input-minimal"
+                    placeholder="보호자 성함을 입력하세요"
+                  />
+                </div>
+                <div className="group">
+                  <label className="label-minimal">닉네임</label>
+                  <div className="relative">
+                    <input
+                      type="text"
+                      name="nickname"
+                      required
+                      value={formData.nickname}
+                      onChange={handleChange}
+                      onBlur={checkNickname}
+                      className="input-minimal pr-16"
+                      placeholder="활동하실 닉네임을 입력하세요"
+                    />
+                    <div className="absolute right-0 top-1/2 -translate-y-1/2">
+                      <button 
+                        type="button" 
+                        onClick={checkNickname}
+                        disabled={nicknameStatus === 'checking' || !formData.nickname}
+                        className="text-[9px] tracking-widest text-zinc-400 uppercase hover:text-black transition-colors px-2"
+                      >
+                        {nicknameStatus === 'checking' ? '...' : 'Check'}
+                      </button>
+                    </div>
+                  </div>
+                  {nicknameStatus !== 'idle' && (
+                    <p className={`text-[10px] mt-2 ${nicknameStatus === 'available' ? 'text-zinc-900' : 'text-zinc-300'}`}>
+                      {nicknameStatus === 'available' 
+                        ? "✓ 사용 가능한 닉네임입니다." 
+                        : "✕ 이미 사용 중인 닉네임입니다."}
+                    </p>
+                  )}
+                </div>
               </div>
             </div>
 
             {/* Phone */}
             <div className="group">
-              <label className="label-minimal">Contact</label>
+              <label className="label-minimal">연락처</label>
               <div className="flex items-center gap-2">
                 <input
                   type="tel"
@@ -169,7 +299,7 @@ export default function SignUpPage() {
 
             {/* Gender */}
             <div className="group">
-              <label className="label-minimal">Gender</label>
+              <label className="label-minimal">성별</label>
               <div className="flex gap-8 pt-2">
                 {["남성", "여성", "기타"].map((option) => (
                   <label key={option} className="flex items-center gap-2 cursor-pointer">
@@ -191,7 +321,7 @@ export default function SignUpPage() {
 
             {/* Address */}
             <div className="group">
-              <label className="label-minimal">Address</label>
+              <label className="label-minimal">주소</label>
               <div className="flex gap-2">
                 <select
                   required
@@ -243,7 +373,7 @@ export default function SignUpPage() {
 
             {/* Family Connection Logic */}
             <div className="group pt-6 border-t border-zinc-100">
-              <label className="label-minimal text-black mb-4">Family Connection</label>
+              <h3 className="text-lg font-normal text-black mb-4 tracking-tight">가족 연결</h3>
               
               <div className="space-y-6">
                 <div className="flex gap-4">
@@ -296,14 +426,14 @@ export default function SignUpPage() {
 
           <button 
             type="submit" 
-            disabled={hasInviteCode === null}
+            disabled={hasInviteCode === null || loading}
             className={`w-full py-4 text-sm font-medium transition-all ${
-              hasInviteCode === null 
+              hasInviteCode === null || loading
               ? 'bg-zinc-100 text-zinc-300 cursor-not-allowed' 
               : 'bg-black text-white hover:bg-zinc-800'
             }`}
           >
-            가입하기
+            {loading ? "가입 중..." : "가입하기"}
           </button>
         </form>
       </div>
