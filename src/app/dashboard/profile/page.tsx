@@ -55,6 +55,7 @@ export default function ProfilePage() {
         gender: profile.gender || "",
         address: profile.address || " ",
         inviteCode: family?.invite_code || "코드 없음",
+        inputInviteCode: "",
       });
     }
     setLoading(false);
