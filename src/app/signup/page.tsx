@@ -301,7 +301,7 @@ export default function SignUpPage() {
             <div className="group">
               <label className="label-minimal">성별</label>
               <div className="flex gap-8 pt-2">
-                {["남성", "여성", "기타"].map((option) => (
+                {["남성", "여성"].map((option) => (
                   <label key={option} className="flex items-center gap-2 cursor-pointer">
                     <input
                       type="radio"

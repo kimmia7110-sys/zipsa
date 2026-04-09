@@ -158,7 +158,7 @@ export default function EditPetPage() {
       <div className="w-full max-w-[450px] space-y-16">
         <header className="space-y-4">
           <Link href="/dashboard" className="text-[10px] tracking-widest text-zinc-400 uppercase hover:text-black transition-colors">
-            ← 취소
+            ← 뒤로가기
           </Link>
           <div className="pt-4">
             <h1 className="text-3xl font-light tracking-tighter">정보 수정하기</h1>
@@ -173,17 +173,26 @@ export default function EditPetPage() {
           <div className="space-y-4">
             <h3 className="text-lg font-normal text-black tracking-tight">프로필 사진</h3>
             <div className="flex justify-center pt-4">
-              <label className="relative w-40 h-40 border border-dashed border-zinc-200 flex flex-col items-center justify-center cursor-pointer hover:border-black transition-colors overflow-hidden group">
-                {previewImage ? (
-                  <img src={previewImage} alt="Preview" className="w-full h-full object-cover" />
-                ) : (
-                  <div className="text-center space-y-1">
-                    <span className="text-[24px] font-thin text-zinc-300">+</span>
-                    <span className="text-[10px] text-zinc-400 uppercase tracking-tighter">사진 변경</span>
-                  </div>
-                )}
-                <input type="file" className="hidden" accept="image/*" onChange={handleImageUpload} />
-              </label>
+              <div className="relative group">
+                <label className="block w-40 h-40 border border-zinc-100 rounded-2xl flex flex-col items-center justify-center cursor-pointer hover:border-black transition-all overflow-hidden bg-zinc-50">
+                  {previewImage ? (
+                    <img src={previewImage} alt="Preview" className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" />
+                  ) : (
+                    <div className="text-center space-y-1">
+                      <span className="text-[24px] font-thin text-zinc-300">+</span>
+                      <span className="text-[10px] text-zinc-400 uppercase tracking-tighter">사진 추가</span>
+                    </div>
+                  )}
+                  <input type="file" className="hidden" accept="image/*" onChange={handleImageUpload} />
+                </label>
+                
+                {/* Edit Icon Button */}
+                <div className="absolute -bottom-2 -right-2 w-10 h-10 bg-black rounded-full flex items-center justify-center shadow-lg border-4 border-white cursor-pointer group-hover:scale-110 transition-all pointer-events-none">
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                    <path d="M17 3a2.828 2.828 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5L17 3z"></path>
+                  </svg>
+                </div>
+              </div>
             </div>
           </div>
 
@@ -301,6 +310,7 @@ export default function EditPetPage() {
                 />
               </div>
             </div>
+
           </div>
 
           <button type="submit" disabled={saving} className="w-full btn-black py-5 text-sm">
