@@ -181,7 +181,7 @@ export default function DashboardPage() {
       setActivities([newActivity as Activity, ...activities]);
       setRecordingType(null);
       setRecordStep(1);
-      setRecordData({ type: '', amountValue: '', amountUnit: 'g', memo: '' });
+      setRecordData({ type: '', amountValue: '', amountUnit: 'g', memo: '', duration: '', mood: '' });
     }
     setIsSubmitting(false);
   };
