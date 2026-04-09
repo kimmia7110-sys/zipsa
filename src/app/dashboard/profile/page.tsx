@@ -19,6 +19,7 @@ export default function ProfilePage() {
     gender: "",
     address: " ",
     inviteCode: "",
+    inputInviteCode: "",
   });
 
   useEffect(() => {
@@ -112,6 +113,38 @@ export default function ProfilePage() {
   const handleCopyCode = () => {
     navigator.clipboard.writeText(formData.inviteCode);
     alert("초대 코드가 복사되었습니다.");
+  };
+
+  const handleJoinFamily = async () => {
+    if (!formData.inputInviteCode) return;
+    
+    setSaving(true);
+    try {
+      const { data: family, error: familyError } = await supabase
+        .from("families")
+        .select("id")
+        .eq("invite_code", formData.inputInviteCode.toUpperCase())
+        .maybeSingle();
+
+      if (familyError || !family) {
+        throw new Error("유효하지 않은 초대 코드입니다.");
+      }
+
+      const { data: { user } } = await supabase.auth.getUser();
+      const { error: updateError } = await supabase
+        .from("profiles")
+        .update({ family_id: family.id })
+        .eq("id", user?.id);
+
+      if (updateError) throw updateError;
+
+      alert("가족에 합류하셨습니다!");
+      fetchProfile(); // Refresh profile and invitation code
+    } catch (error: any) {
+      alert(error.message || "오류가 발생했습니다.");
+    } finally {
+      setSaving(false);
+    }
   };
 
   if (loading) {
@@ -307,9 +340,11 @@ export default function ProfilePage() {
 
             {/* Family Connection Section */}
             <div className="group pt-6 border-t border-zinc-100">
-              <h3 className="text-lg font-normal text-black mb-6 tracking-tight">가족 구성원 초대하기</h3>
-              <div className="bg-zinc-50 p-6 space-y-4">
-                <label className="label-minimal text-zinc-400">가족 초대 코드</label>
+              <h3 className="text-lg font-normal text-black mb-6 tracking-tight">가족 관리</h3>
+              
+              {/* Existing Family Code */}
+              <div className="bg-zinc-50 p-6 space-y-4 mb-6">
+                <label className="label-minimal text-zinc-400">나의 가족 초대 코드</label>
                 <div className="flex justify-between items-center">
                   <span className="text-2xl font-light tracking-[0.2em]">{formData.inviteCode}</span>
                   <button 
@@ -322,6 +357,32 @@ export default function ProfilePage() {
                 </div>
                 <p className="text-[10px] text-zinc-400 leading-relaxed">
                   이 코드를 가족에게 공유하여 같은 아이들을 함께 돌볼 수 있습니다.
+                </p>
+              </div>
+
+              {/* Join Family Section */}
+              <div className="border border-zinc-100 p-6 space-y-4">
+                <label className="label-minimal text-zinc-400">초대받은 코드가 있나요?</label>
+                <div className="flex gap-3">
+                  <input
+                    type="text"
+                    name="inputInviteCode"
+                    placeholder="코드 6자리 입력"
+                    className="input-minimal flex-[2] uppercase font-mono tracking-widest"
+                    value={formData.inputInviteCode}
+                    onChange={handleChange}
+                  />
+                  <button
+                    type="button"
+                    onClick={handleJoinFamily}
+                    disabled={saving || !formData.inputInviteCode}
+                    className="flex-1 text-[11px] font-medium bg-black text-white px-4 py-2 rounded-lg hover:bg-zinc-800 transition-all disabled:bg-zinc-100 disabled:text-zinc-400"
+                  >
+                    합류하기
+                  </button>
+                </div>
+                <p className="text-[10px] text-zinc-300 italic">
+                  * 다른 가족에 합류하면 기존 가족 그룹에서 변경됩니다.
                 </p>
               </div>
             </div>

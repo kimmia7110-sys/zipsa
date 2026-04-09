@@ -42,3 +42,21 @@ input {
 .label-minimal {
   @apply text-[10px] uppercase tracking-widest text-zinc-400 mb-1 block font-semibold;
 }
+
+/* Custom Scrollbar for cleaner UI */
+.custom-scrollbar::-webkit-scrollbar {
+  width: 4px;
+}
+
+.custom-scrollbar::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.custom-scrollbar::-webkit-scrollbar-thumb {
+  background: #f1f1f1;
+  border-radius: 10px;
+}
+
+.custom-scrollbar::-webkit-scrollbar-thumb:hover {
+  background: #e4e4e7;
+}

@@ -26,6 +26,19 @@ export default function EditPetPage() {
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
+  const [medications, setMedications] = useState<any[]>([]);
+
+  const addMedicationItem = () => {
+    setMedications([...medications, { id: Date.now().toString(), name: '', frequency: '', notes: '' }]);
+  };
+
+  const removeMedicationItem = (id: string) => {
+    setMedications(medications.filter(item => item.id !== id));
+  };
+
+  const updateMedicationItem = (id: string, field: string, value: string) => {
+    setMedications(medications.map(item => item.id === id ? { ...item, [field]: value } : item));
+  };
 
   useEffect(() => {
     fetchPet();
@@ -49,6 +62,7 @@ export default function EditPetPage() {
     setBirthDate(pet.birth_date || "");
     setAdoptionDate(pet.adoption_date || "");
     setGender(pet.gender || "");
+    setMedications(Array.isArray(pet.medications) ? pet.medications : []);
     
     // Parse species string
     if (pet.species.startsWith("강아지")) {
@@ -131,6 +145,7 @@ export default function EditPetPage() {
           birth_date: birthDate,
           adoption_date: adoptionDate || null,
           gender: gender,
+          medications: medications,
         })
         .eq("id", petId);
 
@@ -154,8 +169,8 @@ export default function EditPetPage() {
   }
 
   return (
-    <main className="min-h-screen bg-white flex flex-col items-center px-6 py-20 font-light">
-      <div className="w-full max-w-[450px] space-y-16">
+    <main className="min-h-screen bg-white flex flex-col items-center px-6 py-12 font-light">
+      <div className="w-full max-w-[450px] space-y-10">
         <header className="space-y-4">
           <Link href="/dashboard" className="text-[10px] tracking-widest text-zinc-400 uppercase hover:text-black transition-colors">
             ← 뒤로가기
@@ -168,7 +183,7 @@ export default function EditPetPage() {
           </div>
         </header>
 
-        <form onSubmit={handleSubmit} className="space-y-12">
+        <form onSubmit={handleSubmit} className="space-y-8">
           {/* Photo Section */}
           <div className="space-y-4">
             <h3 className="text-lg font-normal text-black tracking-tight">프로필 사진</h3>
@@ -196,7 +211,7 @@ export default function EditPetPage() {
             </div>
           </div>
 
-          <div className="space-y-10">
+          <div className="space-y-8">
             {/* Name */}
             <div className="group">
               <h3 className="text-lg font-normal text-black mb-4 tracking-tight">아이 이름</h3>
@@ -269,7 +284,7 @@ export default function EditPetPage() {
             </div>
 
             {/* Additional Details */}
-            <div className="pt-10 space-y-12 border-t border-zinc-100">
+            <div className="pt-8 space-y-8 border-t border-zinc-100">
               <div className="group">
                 <h3 className="text-lg font-normal text-black mb-4 tracking-tight">성별 *</h3>
                 <div className="flex gap-6 pt-2">
@@ -309,13 +324,74 @@ export default function EditPetPage() {
                   className="input-minimal uppercase"
                 />
               </div>
+
+              <div className="group pt-8 border-t border-zinc-100 space-y-4">
+                <div className="flex justify-between items-center">
+                  <h3 className="text-lg font-normal text-black tracking-tight">💊 복용 중인 약</h3>
+                  <button 
+                    type="button"
+                    onClick={addMedicationItem}
+                    className="text-[10px] text-zinc-400 hover:text-black transition-colors underline underline-offset-4"
+                  >
+                    + 항목 추가
+                  </button>
+                </div>
+                
+                <div className="space-y-4 max-h-[450px] overflow-y-auto pr-2 custom-scrollbar">
+                  {medications.map((item) => (
+                    <div key={item.id} className="bg-zinc-50 p-4 rounded-xl border border-zinc-100 space-y-2 relative group/item">
+                      <button 
+                        type="button"
+                        onClick={() => removeMedicationItem(item.id)}
+                        className="absolute -top-1.5 -right-1.5 w-5 h-5 bg-white border border-zinc-100 rounded-full flex items-center justify-center text-[9px] text-zinc-300 hover:text-red-500 transition-all opacity-0 group-hover/item:opacity-100 shadow-sm"
+                      >
+                        ✕
+                      </button>
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                        <div className="space-y-0.5">
+                          <label className="text-[8px] text-zinc-400 uppercase tracking-tighter">Drug Name</label>
+                          <input 
+                            className="input-minimal bg-white text-[11px] h-8 px-2" 
+                            placeholder="약 이름"
+                            value={item.name}
+                            onChange={e => updateMedicationItem(item.id, 'name', e.target.value)}
+                          />
+                        </div>
+                        <div className="space-y-0.5">
+                          <label className="text-[8px] text-zinc-400 uppercase tracking-tighter">Frequency</label>
+                          <input 
+                            className="input-minimal bg-white text-[11px] h-8 px-2" 
+                            placeholder="일 2회"
+                            value={item.frequency}
+                            onChange={e => updateMedicationItem(item.id, 'frequency', e.target.value)}
+                          />
+                        </div>
+                      </div>
+                      <div className="space-y-0.5">
+                        <label className="text-[8px] text-zinc-400 uppercase tracking-tighter">Notes</label>
+                        <input 
+                          className="input-minimal bg-white text-[11px] h-8 px-2" 
+                          placeholder="메모"
+                          value={item.notes}
+                          onChange={e => updateMedicationItem(item.id, 'notes', e.target.value)}
+                        />
+                      </div>
+                    </div>
+                  ))}
+                  
+                  {medications.length === 0 && (
+                    <p className="text-[10px] text-zinc-400 text-center py-4 border border-dashed border-zinc-100 rounded-2xl italic">
+                      등록된 약이 없습니다. 항목을 추가해 보세요.
+                    </p>
+                  )}
+                </div>
+              </div>
+              </div>
             </div>
 
-          </div>
-
-          <button type="submit" disabled={saving} className="w-full btn-black py-5 text-sm">
-            {saving ? "저장 중..." : "수정 완료"}
-          </button>
+            <button type="submit" disabled={saving} className="w-full btn-black py-5 text-sm mt-10">
+              {saving ? "저장 중..." : "수정 완료"}
+            </button>
         </form>
       </div>
     </main>
