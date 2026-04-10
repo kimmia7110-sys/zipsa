@@ -26,7 +26,34 @@ export default function ProfilePage() {
   const fetchProfile = async () => {
     try {
       setLoading(true);
-      const { data: { user } } = await supabase.auth.getUser();
+      const isMasterMode = localStorage.getItem("zipsa_master_mode") === "true";
+      
+      let user: any = null;
+      const { data: authData } = await supabase.auth.getUser();
+      user = authData?.user;
+
+      // [마스터 인증 추월]
+      if (!user && isMasterMode) {
+        const { data: anyProfile } = await supabase
+          .from("profiles")
+          .select("id, name, nickname, phone, gender, address")
+          .limit(1)
+          .single();
+        
+        if (anyProfile) {
+          user = { id: anyProfile.id };
+          setProfile(anyProfile);
+          setFormData({
+            name: anyProfile.name || "",
+            nickname: anyProfile.nickname || "",
+            phone: anyProfile.phone || "",
+            gender: anyProfile.gender || "",
+            address: anyProfile.address || ""
+          });
+          return;
+        }
+      }
+
       if (!user) {
         console.warn("User session not found.");
         router.push("/");
