@@ -1196,13 +1196,13 @@ export default function DashboardPage() {
             </button>
           </div>
           
-          <div className="relative">
+          <div className="relative h-8 flex items-center">
             <button
               onClick={() => {
                 setIsMyPageOpen(!isMyPageOpen);
                 setActiveMyPageTab('root');
               }}
-              className={`text-[10px] tracking-widest uppercase transition-colors ${isMyPageOpen ? 'text-black font-bold' : 'text-zinc-400 hover:text-black'}`}
+              className={`text-[10px] tracking-[0.2em] uppercase transition-colors leading-none ${isMyPageOpen ? 'text-black font-bold' : 'text-zinc-400 hover:text-black'}`}
             >
               마이페이지
             </button>
@@ -1256,6 +1256,7 @@ export default function DashboardPage() {
                           </button>
                         </div>
                       ) : activeMyPageTab === 'profile' ? (
+                        // Profile management UI code...
                         <div className="p-1.5 space-y-4 animate-in fade-in slide-in-from-right-1 duration-200">
                           <div className="flex items-center gap-2 mb-1 px-1">
                             <button onClick={() => setActiveMyPageTab('root')} className="p-1 text-zinc-400 hover:text-black">
@@ -1293,6 +1294,7 @@ export default function DashboardPage() {
                           </div>
                         </div>
                       ) : (
+                        // Family management UI code...
                         <div className="p-1.5 space-y-3 animate-in fade-in slide-in-from-right-1 duration-200">
                           <div className="flex items-center gap-2 mb-1 px-1">
                             <button onClick={() => setActiveMyPageTab('root')} className="p-1 -ml-1 text-zinc-400 hover:text-black">
@@ -1443,13 +1445,6 @@ export default function DashboardPage() {
               )}
             </AnimatePresence>
           </div>
-
-          <button
-            onClick={handleLogout}
-            className="text-[10px] tracking-widest text-zinc-400 uppercase hover:text-black transition-colors"
-          >
-            로그아웃
-          </button>
         </div>
       </nav>
 
