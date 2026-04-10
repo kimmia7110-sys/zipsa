@@ -405,11 +405,6 @@ export default function DashboardPage() {
 
             if (petsError) {
               console.error("Dashboard Pets Fetch Error:", petsError.message);
-            } else if (petsData) {
-              setPets(petsData);
-              if (petsData.length > 0 && !selectedPetId) {
-                setSelectedPetId(petsData[0].id);
-              }
             }
 
             // Fetch activities
@@ -1601,7 +1596,6 @@ export default function DashboardPage() {
       <div className="max-w-[800px] mx-auto px-6 pt-12 pb-28 space-y-12">
         <section className="space-y-4">
           <div className="flex flex-col gap-1.5">
-            <p className="text-[12px] tracking-[0.2em] text-[#888888] uppercase">홈</p>
             <div className="relative">
               <button onClick={() => { fetchMyFamilies(); setShowInlineFamilies(!showInlineFamilies); }} className="flex items-center gap-1.5 group">
                 <h1 className="text-2xl font-semibold tracking-tight text-[#1A1A1A] flex items-center gap-1.5">
@@ -1661,7 +1655,7 @@ export default function DashboardPage() {
           </div>
           <div className="space-y-3">
             <h2 className="text-[25px] font-light tracking-tight">안녕하세요, {profile?.nickname || profile?.name}님</h2>
-            <p className="text-xs text-[#888888]">사랑스러운 나의 {pets.length}마리의 아이들을 돌봐주세요 ദ്디⁼ˆ╹⥿╹ˆ⁼)</p>
+            <p className="text-[11pt] text-[#888888] font-light">사랑스러운 나의 {pets.length}마리의 아이들을 돌봐주세요 ദ്디⁼ˆ╹⥿╹ˆ⁼)</p>
           </div>
         </section>
 
@@ -1673,7 +1667,7 @@ export default function DashboardPage() {
           return (
             <motion.section initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} className="space-y-12">
               <div className="space-y-3">
-                <span className="text-[10px] tracking-[0.3em] text-[#888888] uppercase font-pixel">포켓룸</span>
+                <span className="text-[10pt] tracking-[0.3em] text-[#888888] uppercase font-pixel">포켓룸</span>
                 <div className="relative aspect-video sm:aspect-[21/9] bg-white border-[1px] border-zinc-900 rounded-2xl overflow-hidden flex items-center justify-center group shadow-2xl shadow-zinc-100">
                   <div className="absolute top-6 left-8 flex flex-col gap-1.5">
                     <div className="flex items-center gap-2">
@@ -1723,10 +1717,10 @@ export default function DashboardPage() {
             <section className="space-y-12">
               <div className="flex justify-between items-end">
                 <div className="space-y-1">
-                  <h3 className="text-xs tracking-widest text-[#888888] uppercase font-semibold">아이 프로필</h3>
-                  <p className="text-[10px] text-zinc-300 uppercase tracking-widest">옆으로 밀어서 선택하세요</p>
+                  <h3 className="text-[13pt] tracking-widest text-[#1A1A1A] uppercase font-semibold">아이 프로필</h3>
+                  <p className="text-[10pt] text-[#888888] uppercase tracking-widest font-medium">옆으로 밀어서 선택하세요</p>
                 </div>
-                <Link href="/dashboard/add-pet" className="text-[10px] underline underline-offset-4 decoration-[0.5px] hover:text-zinc-500">아이 추가하기</Link>
+                <Link href="/dashboard/add-pet" className="text-[10pt] text-zinc-300 underline underline-offset-4 decoration-[0.5px] hover:text-[#1A1A1A] transition-colors">아이 추가하기</Link>
               </div>
 
               <div className="relative h-[280px] sm:h-[320px] flex items-center justify-center -mx-6 perspective-[1000px]">
@@ -1808,15 +1802,29 @@ export default function DashboardPage() {
               </div>
             </section>
 
-        <section className="space-y-8">
-          <h3 className="text-xs tracking-widest text-[#1A1A1A] uppercase font-semibold">🗒️오늘 하루를 기록해주세요!</h3>
+        <section className="pt-12 pb-4 space-y-8">
+          <h3 className="text-[13pt] tracking-widest text-[#1A1A1A] uppercase font-semibold">🗒️ 오늘 하루를 기록해주세요!</h3>
           <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 gap-4">
             {((): string[] => {
               const selectedPet = pets.find(p => p.id === selectedPetId);
               const species = (selectedPet?.species || '').toLowerCase();
               const activityLabel = species.includes('고양이') ? '사냥놀이하기' : (species.includes('햄스터') ? '운동시키기' : (species.includes('토끼') || species.includes('새') ? '자유시간주기' : '산책하기'));
               return ['밥 먹이기', activityLabel, '약 먹이기', '간식 먹이기', '기타'];
-              })().map((type) => ( <button key={type} onClick={() => { setRecordingType(type); setRecordStep(1); setRecordData({ type: '', amountValue: '', amountUnit: 'g', memo: '', duration: '', mood: '' }); }} className="group border border-zinc-100 p-6 space-y-4 hover:border-black transition-all text-left"><div className="w-8 h-8 bg-zinc-50 rounded-full flex items-center justify-center group-hover:bg-black group-hover:text-white transition-colors"><span className="text-[10px] font-semibold">+</span></div><div className="space-y-1"><p className="text-xs font-semibold">{type}</p><p className="text-[9px] text-zinc-300 uppercase tracking-tighter">간편 기록</p></div></button> ))}
+              })().map((type) => ( 
+                <button 
+                  key={type} 
+                  onClick={() => { setRecordingType(type); setRecordStep(1); setRecordData({ type: '', amountValue: '', amountUnit: 'g', memo: '', duration: '', mood: '' }); }} 
+                  className="group border border-zinc-100 p-8 space-y-6 hover:border-black transition-all text-left bg-white active:scale-[0.98]"
+                >
+                  <div className="w-9 h-9 bg-zinc-50 rounded-full flex items-center justify-center group-hover:bg-black group-hover:text-white transition-colors">
+                    <span className="text-[11pt] font-semibold">+</span>
+                  </div>
+                  <div className="space-y-1.5">
+                    <p className="text-[13pt] font-semibold text-[#1A1A1A]">{type}</p>
+                    <p className="text-[11pt] text-[#888888] uppercase tracking-tighter">간편 기록</p>
+                  </div>
+                </button> 
+              ))}
           </div>
         </section>
 
@@ -1826,17 +1834,33 @@ export default function DashboardPage() {
           const meds = Array.isArray(selectedPet.medications) ? selectedPet.medications : [];
           return (
             <section className="space-y-6">
-              <div className="flex justify-between items-end"><h3 className="text-xs tracking-widest text-[#1A1A1A] uppercase font-semibold">💊 {selectedPet.name}의 복용 중인 약</h3><Link href={`/dashboard/edit-pet/${selectedPet.id}`} className="text-[9px] text-[#888888] hover:text-black transition-colors underline underline-offset-4">수정/관리하기</Link></div>
+              <div className="flex justify-between items-end">
+                <h3 className="text-[13pt] tracking-widest text-[#1A1A1A] uppercase font-semibold">💊 {selectedPet.name}의 복용 중인 약</h3>
+                <Link href={`/dashboard/edit-pet/${selectedPet.id}`} className="text-[10pt] text-[#888888] hover:text-black transition-colors underline underline-offset-4">수정/관리하기</Link>
+              </div>
               {meds.length > 0 ? (
-                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3"> {meds.map((med: any) => (
-                    <div key={med.id} className="bg-zinc-50/50 p-4 rounded-xl border border-zinc-100/50 flex items-center gap-3"><div className="w-8 h-8 bg-white rounded-lg flex items-center justify-center text-xs border border-zinc-100 shadow-sm">💊</div><div className="space-y-0.5"><p className="text-[11px] font-semibold text-[#1A1A1A]">{med.name}</p><p className="text-[9px] text-[#888888] font-medium uppercase">{med.frequency}</p></div></div> ))} </div>
-              ) : ( <div className="bg-zinc-50/30 p-6 rounded-xl border border-dashed border-zinc-100 flex flex-center justify-center"><p className="text-[10px] text-zinc-300 uppercase tracking-widest">등록된 복용 중인 약이 없습니다</p></div> )}
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3"> 
+                  {meds.map((med: any) => (
+                    <div key={med.id} className="bg-zinc-50/50 p-5 rounded-2xl border border-zinc-100/50 flex items-center gap-4">
+                      <div className="w-10 h-10 bg-white rounded-xl flex items-center justify-center text-[13pt] border border-zinc-100 shadow-sm">💊</div>
+                      <div className="space-y-0.5">
+                        <p className="text-[11pt] font-semibold text-[#1A1A1A]">{med.name}</p>
+                        <p className="text-[10pt] text-[#888888] font-medium uppercase">{med.frequency}</p>
+                      </div>
+                    </div> 
+                  ))} 
+                </div>
+              ) : ( 
+                <div className="bg-zinc-50/30 p-8 rounded-2xl border border-dashed border-zinc-100 flex flex-center justify-center">
+                  <p className="text-[11pt] text-zinc-300 uppercase tracking-widest">등록된 복용 중인 약이 없습니다</p>
+                </div> 
+              )}
             </section>
           );
         })()}
 
         <section className="space-y-8">
-          <h3 className="text-xs tracking-widest text-[#888888] uppercase font-medium">최근 기록</h3>
+          <h3 className="text-[13pt] tracking-widest text-[#1A1A1A] uppercase font-semibold">최근 기록</h3>
           <div className="space-y-4">
             {activities.filter(a => {
               const isToday = new Date(a.timestamp).toDateString() === new Date().toDateString();
@@ -1846,26 +1870,33 @@ export default function DashboardPage() {
                 const isToday = new Date(a.timestamp).toDateString() === new Date().toDateString();
                 return a.pet_id === selectedPetId && isToday;
               }).map((activity) => (
-                <div key={activity.id} className="group relative py-6 border-b border-zinc-50 hover:bg-zinc-50/50 transition-colors px-2 -mx-2 rounded-lg">
+                <div key={activity.id} className="group relative py-6 border-b border-zinc-50 hover:bg-zinc-50/50 transition-colors px-2 -mx-2 rounded-2xl">
                   <div className="flex justify-between items-start">
                     <div className="flex items-center gap-4">
-                      <div className="w-10 h-10 rounded-full bg-white border border-zinc-100 flex items-center justify-center text-[11px] font-semibold text-[#888888]">{activity.type[0]}</div>
+                      <div className="w-11 h-11 rounded-xl bg-zinc-50 border border-zinc-100 flex items-center justify-center shrink-0 shadow-sm shadow-zinc-100/50">
+                        <span className="text-[16pt]">
+                          {activity.type === '밥 먹이기' ? '🥣' : 
+                          activity.type === '산책하기' ? '🦮' : 
+                          activity.type === '약 먹이기' ? '💊' : 
+                          activity.type === '놀아주기' ? '🧶' : '📝'}
+                        </span>
+                      </div>
                       <div className="space-y-1">
-                        <div className="flex items-center gap-1.5"><span className="text-[9px] font-semibold px-1.5 py-0.5 bg-zinc-100 rounded text-zinc-500 uppercase tracking-tighter">{(activity as any).profiles?.nickname || '집사'}</span><p className="text-[12px] font-semibold text-[#1A1A1A]">{activity.pets?.name || "아이"} — {activity.type}</p></div>
-                        <p className="text-[11px] text-zinc-500 leading-relaxed font-normal">{activity.details || '상세 내용 없음'}</p>
-                        <p className="text-[10px] text-zinc-300 font-mono pt-1">{new Date(activity.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</p>
+                        <div className="flex items-center gap-1.5"><span className="text-[10pt] font-semibold px-1.5 py-0.5 bg-zinc-50 rounded text-zinc-500 uppercase tracking-tighter">{(activity as any).profiles?.nickname || '집사'}</span><p className="text-[13pt] font-semibold text-[#1A1A1A]">{activity.type}</p></div>
+                        <p className="text-[11pt] text-[#888888] leading-relaxed font-light">{activity.details || '상세 내용 없음'}</p>
+                        <p className="text-[10pt] text-zinc-300 font-mono pt-1">{new Date(activity.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', hour12: false })}</p>
                       </div>
                     </div>
                     {activity.user_id === profile?.id && (
                       <div className="flex gap-4 opacity-100 md:opacity-0 md:group-hover:opacity-100 transition-opacity">
-                        <button onClick={() => { setEditingActivity(activity); if (activity.type === '밥 먹이기') { const [typePart, amountPart] = activity.details.split(' - '); const amountMatch = amountPart?.match(/^(\d+)(.*)$/); setEditMealData({ type: typePart || '', amountValue: amountMatch?.[1] || '', amountUnit: amountMatch?.[2] || 'g' }); } else { setEditDetails(activity.details); } }} className="text-[10px] text-[#888888] hover:text-black">수정</button>
-                        <button onClick={() => handleDeleteActivity(activity.id)} className="text-[10px] text-zinc-200 hover:text-red-400">삭제</button>
+                        <button onClick={() => { setEditingActivity(activity); if (activity.type === '밥 먹이기') { const [typePart, amountPart] = activity.details.split(' - '); const amountMatch = amountPart?.match(/^(\d+)(.*)$/); setEditMealData({ type: typePart || '', amountValue: amountMatch?.[1] || '', amountUnit: amountMatch?.[2] || 'g' }); } else { setEditDetails(activity.details); } }} className="text-[10pt] text-[#888888] hover:text-black">수정</button>
+                        <button onClick={() => handleDeleteActivity(activity.id)} className="text-[10pt] text-zinc-200 hover:text-red-400">삭제</button>
                       </div>
                     )}
                   </div>
                 </div>
               ))
-            ) : ( <p className="text-[10px] text-zinc-300 py-10 text-center">최근 기록이 없습니다.</p> )}
+            ) : ( <p className="text-[10pt] text-zinc-300 py-10 text-center uppercase tracking-widest italic font-light">최근 기록이 없습니다.</p> )}
           </div>
         </section>
           </>
@@ -1875,7 +1906,7 @@ export default function DashboardPage() {
           <section className="space-y-12 border-t border-zinc-50 pt-2">
           <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-6">
             <div className="space-y-1">
-              <h3 className="text-xs tracking-widest text-[#888888] uppercase font-medium">활동 히스토리</h3>
+              <h3 className="text-[13pt] tracking-widest text-[#1A1A1A] uppercase font-semibold">활동 히스토리</h3>
               <h4 className="text-[13pt] font-light tracking-tight text-[#1A1A1A]">
                 {historySelectedDate.getFullYear()}년 {historySelectedDate.getMonth() + 1}월
               </h4>
@@ -1886,7 +1917,7 @@ export default function DashboardPage() {
                 <button
                   key={mode}
                   onClick={() => setHistoryViewMode(mode)}
-                  className={`flex-1 sm:px-4 py-1.5 text-[10px] font-semibold uppercase tracking-widest transition-all rounded-md ${
+                  className={`flex-1 sm:px-4 py-1.5 text-[11pt] font-semibold uppercase tracking-widest transition-all rounded-md ${
                     historyViewMode === mode ? 'bg-white text-[#1A1A1A] shadow-sm' : 'text-[#888888] hover:text-[#1A1A1A]'
                   }`}
                 >
