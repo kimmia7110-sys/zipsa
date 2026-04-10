@@ -53,15 +53,15 @@ input {
 
 /* 29CM Style minimalism */
 .btn-black {
-  @apply bg-[#1A1A1A] text-white px-8 py-4 text-[12px] font-semibold tracking-widest uppercase transition-all hover:bg-black active:scale-[0.98] rounded-none;
+  @apply bg-[#1A1A1A] text-white px-8 py-4 text-base font-semibold tracking-widest uppercase transition-all hover:bg-black active:scale-[0.98] rounded-none;
 }
 
 .input-minimal {
-  @apply w-full border-b border-zinc-100 py-4 text-sm font-light focus:border-black transition-colors bg-transparent placeholder:text-zinc-200;
+  @apply w-full border-b border-zinc-100 py-4 text-base font-light focus:border-black transition-colors bg-transparent placeholder:text-zinc-200;
 }
 
 .label-minimal {
-  @apply text-[10px] uppercase tracking-widest text-[#888888] mb-2 block font-medium;
+  @apply text-base uppercase tracking-widest text-[#888888] mb-2 block font-medium;
 }
 
 .text-secondary {

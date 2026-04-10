@@ -71,11 +71,11 @@ export default function LandingPage() {
       <div className="w-full max-w-[320px] text-center space-y-12">
         {/* Main Visual */}
         <section className="space-y-4 pt-8">
-          <p className="text-[10px] tracking-[0.2em] font-light text-zinc-500 uppercase">
+          <p className="text-xl tracking-[0.2em] font-light text-zinc-500 uppercase">
             지독하게 사랑한다면, 집착하세요.
           </p>
           <PixelDog />
-          <h1 className="text-2xl font-light tracking-tighter">집착</h1>
+          <h1 className="text-5xl font-light tracking-tighter">집착</h1>
         </section>
 
         {/* Form Container */}
@@ -134,7 +134,7 @@ export default function LandingPage() {
                 <button 
                   type="button" 
                   onClick={() => setView('login')}
-                  className="w-full py-3 text-[10px] text-zinc-400 hover:text-black uppercase tracking-widest transition-colors"
+                  className="w-full py-3 text-base text-zinc-400 hover:text-black uppercase tracking-widest transition-colors"
                 >
                   돌아가기
                 </button>
@@ -150,22 +150,22 @@ export default function LandingPage() {
               <button 
                 type="button"
                 onClick={() => alert("등록하신 이메일 주소로 로그인해 주세요.")}
-                className="text-[10px] text-zinc-400 hover:text-black transition-colors"
+                className="text-base text-zinc-400 hover:text-black transition-colors"
               >
                 아이디 찾기
               </button>
-              <span className="w-px h-2 bg-zinc-100" />
+              <span className="w-px h-4 bg-zinc-200" />
               <button 
                 type="button"
                 onClick={() => setView('reset-password')}
-                className="text-[10px] text-zinc-400 hover:text-black transition-colors"
+                className="text-base text-zinc-400 hover:text-black transition-colors"
               >
                 비밀번호 찾기
               </button>
             </div>
           )}
 
-          <p className="text-[11px] text-zinc-400">
+          <p className="text-base text-zinc-400">
             아직 회원이 아니신가요?{" "}
             <Link href="/signup" className="text-zinc-900 underline underline-offset-4 decoration-[0.5px] font-medium">
               회원가입
