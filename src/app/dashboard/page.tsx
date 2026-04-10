@@ -4,6 +4,19 @@ import { useEffect, useState } from "react";
 import { supabase } from "@/lib/supabase";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
+import { motion, AnimatePresence } from "framer-motion";
+import { 
+  Heart, 
+  Flame, 
+  Calendar, 
+  ChevronRight, 
+  Moon, 
+  Sun, 
+  Wind, 
+  Zap,
+  Activity as ActivityIcon,
+  Circle
+} from "lucide-react";
 
 interface Pet {
   id: string;
@@ -11,6 +24,10 @@ interface Pet {
   species: string;
   photo_url: string | null;
   medications?: any[];
+  heart_points: number;
+  active_days_count: number;
+  last_activity_date: string | null;
+  is_hatched: boolean;
 }
 
 interface Activity {
@@ -42,6 +59,7 @@ export default function DashboardPage() {
     mood: ''
   });
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [eggVibrate, setEggVibrate] = useState(0);
   const [editingActivity, setEditingActivity] = useState<Activity | null>(null);
   const [editDetails, setEditDetails] = useState("");
   const [editMealData, setEditMealData] = useState({ type: '', amountValue: '', amountUnit: 'g' });
@@ -147,6 +165,7 @@ export default function DashboardPage() {
     if (!selectedPetId || !recordingType) return;
     setIsSubmitting(true);
     
+    // 1. Determine Activity Details
     let details = "";
     if (recordingType === '밥 먹이기') {
       const value = recordData.amountValue || "0";
@@ -154,36 +173,96 @@ export default function DashboardPage() {
       details = `${recordData.type} - ${value}${unit}`;
     } else if (recordingType === '산책하기' || recordingType === '사냥놀이하기') {
       details = `${recordData.duration}분 동안 ${recordData.mood}${recordData.memo ? ` (${recordData.memo})` : ''}`;
-    } else if (recordingType === '약 먹기') {
+    } else if (recordingType === '약 먹이기') {
       if (recordData.type === '기타') {
         details = recordData.memo;
       } else {
         details = `${recordData.type}${recordData.amountValue ? ` (${recordData.amountValue})` : ''}${recordData.memo ? ` - ${recordData.memo}` : ''}`;
       }
+    } else if (recordingType === '간식 먹이기') {
+      const value = recordData.amountValue || "0";
+      const unit = recordData.amountUnit || "개";
+      details = `${recordData.memo || '간식'} - ${value}${unit}`;
     } else {
       details = recordData.memo;
     }
 
-    const { data: newActivity, error } = await supabase
-      .from('activities')
-      .insert([{
-        pet_id: selectedPetId,
-        type: recordingType,
-        details: details,
-        timestamp: new Date().toISOString()
-      }])
-      .select('*, pets(name)')
-      .single();
+    try {
+      // 2. Calculate Tamagotchi Logic (Family Global)
+      if (!profile?.families) return;
+      const family = profile.families;
 
-    if (error) {
-      alert("기록 저장에 실패했습니다.");
-    } else {
-      setActivities([newActivity as Activity, ...activities]);
+      const today = new Date().toISOString().split('T')[0];
+      const activitiesToday = activities.filter(a => 
+        a.timestamp.startsWith(today) && 
+        a.type === recordingType
+      );
+
+      let pointsToAdd = 0;
+      if (recordingType === '밥 먹이기' && activitiesToday.length < 3) pointsToAdd = 5;
+      else if ((recordingType === '산책하기' || recordingType === '사냥놀이하기') && activitiesToday.length < 3) pointsToAdd = 10;
+      else if (recordingType === '간식 먹이기' && activitiesToday.length < 2) pointsToAdd = 5;
+
+      let newActiveDays = family.active_days_count || 0;
+      if (family.last_activity_date !== today) {
+        newActiveDays = Math.min(7, newActiveDays + 1);
+      }
+
+      const newHeartPoints = Math.min(100, (family.heart_points || 0) + pointsToAdd);
+
+      // 3. Database Updates (Parallel)
+      const activityPromise = supabase
+        .from('activities')
+        .insert([{
+          pet_id: selectedPetId,
+          type: recordingType,
+          details: details,
+          timestamp: new Date().toISOString()
+        }])
+        .select();
+
+      const familyPromise = supabase
+        .from('families')
+        .update({
+          heart_points: newHeartPoints,
+          active_days_count: newActiveDays,
+          last_activity_date: today
+        })
+        .eq('id', family.id);
+
+      const [actResult, famResult] = await Promise.all([activityPromise, familyPromise]);
+
+      if (actResult.error) throw actResult.error;
+      if (famResult.error) throw famResult.error;
+
+      // 4. Update Local State
+      if (actResult.data) {
+        setActivities([actResult.data[0] as unknown as Activity, ...activities]);
+      }
+      
+      // Update profile.families with the new state
+      setProfile({
+        ...profile,
+        families: {
+          ...profile.families,
+          heart_points: newHeartPoints,
+          active_days_count: newActiveDays,
+          last_activity_date: today
+        }
+      });
+
+      // 5. Visual Feedback
+      setEggVibrate(v => v + 1);
+      
+      // Cleanup
       setRecordingType(null);
       setRecordStep(1);
       setRecordData({ type: '', amountValue: '', amountUnit: 'g', memo: '', duration: '', mood: '' });
+    } catch (error: any) {
+      alert(error.message || "기록 중 오류가 발생했습니다.");
+    } finally {
+      setIsSubmitting(false);
     }
-    setIsSubmitting(false);
   };
 
   const handleDeleteActivity = async (id: string) => {
@@ -230,11 +309,11 @@ export default function DashboardPage() {
   }
 
   const renderRecordFlow = () => {
-    if (recordingType === '약 먹기') {
+    if (recordingType === '약 먹이기') {
       const currentPetId = selectedPetId || (pets.length > 0 ? pets[0].id : null);
       const selectedPet = pets?.find(p => p.id === currentPetId);
       const petMedications = Array.isArray(selectedPet?.medications) ? selectedPet.medications : [];
-      const historyMeds = activities.filter(a => a.pet_id === currentPetId && a.type === '약 먹기');
+      const historyMeds = activities.filter(a => a.pet_id === currentPetId && a.type === '약 먹이기');
       const lastMed = historyMeds[0];
       const today = new Date().toLocaleDateString();
       const todayMeds = historyMeds.filter(a => new Date(a.timestamp).toLocaleDateString() === today);
@@ -584,6 +663,132 @@ export default function DashboardPage() {
       );
     }
 
+    if (recordingType === '간식 먹이기') {
+      const currentPetId = selectedPetId || (pets.length > 0 ? pets[0].id : null);
+      const selectedPet = pets.find(p => p.id === currentPetId);
+      const historyTreats = activities.filter(a => a.pet_id === currentPetId && a.type === '간식 먹이기');
+      const lastTreat = historyTreats[0];
+      const today = new Date().toLocaleDateString();
+      const todayTreats = historyTreats.filter(a => new Date(a.timestamp).toLocaleDateString() === today);
+
+      return (
+        <div className="space-y-12 animate-in fade-in slide-in-from-bottom-4 duration-700">
+          {(lastTreat || todayTreats.length > 0) && (
+            <div className="bg-zinc-50 p-5 rounded-2xl space-y-3">
+              <div className="flex justify-between items-center border-b border-zinc-100/50 pb-3">
+                <div className="flex gap-2 items-center">
+                  <div className="w-1 h-1 rounded-full bg-black" />
+                  <span className="text-[10px] text-zinc-900 font-semibold uppercase tracking-tight">오늘 총 {todayTreats.length}회 간식</span>
+                </div>
+                <span className="text-[10px] text-zinc-400 font-medium">{new Date().toLocaleDateString('ko-KR', { month: 'long', day: 'numeric', weekday: 'short' })}</span>
+              </div>
+              {lastTreat && (
+                <div className="flex justify-between items-center">
+                  <span className="text-[10px] text-zinc-400">마지막 간식</span>
+                  <span className="text-[10px] text-zinc-900 font-semibold uppercase font-mono">
+                    {new Date(lastTreat.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })} ({lastTreat.details})
+                  </span>
+                </div>
+              )}
+            </div>
+          )}
+
+          {recordStep === 1 ? (
+            <div className="space-y-10">
+              <div className="space-y-4 text-center">
+                <h2 className="text-2xl font-light tracking-tight">
+                  {selectedPet?.name || '아이'}가 오늘 <span className="font-normal text-black underline underline-offset-8 decoration-zinc-100">맛있는 간식</span>을 먹었나요?
+                </h2>
+                <p className="text-[11px] text-zinc-400 pt-2">무슨 간식을 먹었는지 적어주세요.</p>
+              </div>
+
+              <div className="space-y-8">
+                <input
+                  autoFocus
+                  type="text"
+                  placeholder="예: 츄르, 북어 트릿, 닭가슴살 등"
+                  className="w-full text-xl font-light border-b border-zinc-100 focus:border-black focus:ring-0 py-4 placeholder:text-zinc-200 text-center"
+                  value={recordData.memo}
+                  onChange={(e) => setRecordData({ ...recordData, memo: e.target.value })}
+                />
+                <div className="flex gap-3 pt-6">
+                  <button 
+                    onClick={() => setRecordingType(null)} 
+                    className="flex-1 py-4 text-xs font-medium border border-zinc-100 rounded-xl hover:bg-zinc-50 transition-colors uppercase tracking-widest text-zinc-400"
+                  >
+                    Cancel
+                  </button>
+                  <button 
+                    disabled={!recordData.memo}
+                    onClick={() => {
+                        if (!recordData.amountUnit || recordData.amountUnit === 'g') {
+                            setRecordData({ ...recordData, amountUnit: '개' });
+                        }
+                        setRecordStep(2);
+                    }}
+                    className="flex-[2] py-5 text-sm font-semibold bg-black text-white rounded-2xl shadow-xl shadow-black/10 active:scale-[0.98] transition-all disabled:bg-zinc-100 disabled:shadow-none"
+                  >
+                    다음으로
+                  </button>
+                </div>
+              </div>
+            </div>
+          ) : (
+            <div className="space-y-10 text-center">
+              <div className="space-y-4">
+                <h2 className="text-2xl font-light tracking-tight">얼마나 주셨나요?</h2>
+                <p className="text-[11px] text-zinc-900 font-semibold pt-1">"{recordData.memo}"</p>
+              </div>
+
+              <div className="space-y-8">
+                <div className="flex flex-col items-center space-y-6">
+                  <div className="flex items-end gap-2 border-b border-zinc-100 pb-2">
+                    <input
+                      autoFocus
+                      type="number"
+                      placeholder="0"
+                      className="w-32 text-5xl font-light border-none focus:ring-0 p-0 text-center placeholder:text-zinc-100"
+                      value={recordData.amountValue}
+                      onChange={(e) => setRecordData({ ...recordData, amountValue: e.target.value })}
+                    />
+                    <span className="text-2xl font-light text-zinc-300 pb-1">{recordData.amountUnit || '개'}</span>
+                  </div>
+                  <div className="flex gap-2">
+                    {['개', 'g', '컵'].map((unit) => (
+                      <button
+                        key={unit}
+                        onClick={() => setRecordData({ ...recordData, amountUnit: unit })}
+                        className={`px-5 py-2 text-[10px] font-semibold tracking-widest border transition-all rounded-full ${
+                          (recordData.amountUnit || '개') === unit ? 'border-black bg-black text-white' : 'border-zinc-100 text-zinc-400 hover:border-zinc-200'
+                        }`}
+                      >
+                        {unit}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+
+                <div className="flex gap-3 pt-6">
+                  <button 
+                    onClick={() => setRecordStep(1)} 
+                    className="flex-1 py-4 text-xs font-medium border border-zinc-100 rounded-xl hover:bg-zinc-50 transition-colors uppercase tracking-widest text-zinc-400"
+                  >
+                    Back
+                  </button>
+                  <button 
+                    disabled={!recordData.amountValue || isSubmitting}
+                    onClick={handleRecordActivity}
+                    className="flex-[2] py-5 text-sm font-semibold bg-black text-white rounded-2xl shadow-xl shadow-black/10 active:scale-[0.98] transition-all disabled:bg-zinc-100 disabled:shadow-none"
+                  >
+                    {isSubmitting ? "기록 중..." : "기록 완료"}
+                  </button>
+                </div>
+              </div>
+            </div>
+          )}
+        </div>
+      );
+    }
 
     return (
       <div className="space-y-8">
@@ -651,6 +856,116 @@ export default function DashboardPage() {
             </p>
           </div>
         </section>
+        {/* LCD Tamagotchi Box - Shared Family Global */}
+        {(() => {
+          const family = profile?.families;
+          if (!family) return null;
+
+          const today = new Date().toISOString().split('T')[0];
+          const activitiesToday = activities.filter(a => a.timestamp.startsWith(today));
+          
+          const counts = {
+            meals: activitiesToday.filter(a => a.type === '밥 먹이기').length,
+            walks: activitiesToday.filter(a => a.type === '산책하기' || a.type === '사냥놀이하기').length,
+            treats: activitiesToday.filter(a => a.type === '간식 먹이기').length,
+          };
+
+          return (
+            <motion.section 
+              initial={{ opacity: 0, scale: 0.95 }}
+              animate={{ opacity: 1, scale: 1 }}
+              className="space-y-12"
+            >
+              <div className="space-y-3">
+                <span className="text-[10px] tracking-[0.3em] text-zinc-400 uppercase font-mono">COLLECTIVE SYSTEM</span>
+                <div className="relative aspect-video sm:aspect-[21/9] bg-white border-[1px] border-zinc-900 rounded-2xl overflow-hidden flex items-center justify-center group shadow-2xl shadow-zinc-100">
+                  <div className="absolute top-6 left-8 flex flex-col gap-1.5">
+                    <div className="flex items-center gap-2">
+                      <div className="w-1.5 h-1.5 rounded-full bg-red-500 animate-pulse" />
+                      <span className="text-[9px] font-mono text-zinc-900 tracking-widest uppercase font-bold">집착의 알</span>
+                    </div>
+                    <span className="text-[9px] text-zinc-400 font-mono tracking-tighter">STATUS: {family.is_hatched ? 'HATCHED' : 'WAITING'}</span>
+                  </div>
+
+                  {/* The Egg of Obsession */}
+                  <motion.div
+                    key={eggVibrate}
+                    animate={eggVibrate > 0 ? {
+                      x: [0, -4, 4, -4, 4, 0],
+                      rotate: [0, -3, 3, -3, 3, 0]
+                    } : {}}
+                    transition={{ duration: 0.4 }}
+                    className="relative cursor-pointer"
+                    onClick={() => setEggVibrate(v => v + 1)}
+                  >
+                    <div className="relative w-24 h-24 sm:w-32 sm:h-32 select-none group-hover:scale-110 transition-transform duration-700">
+                      <img 
+                        src={family.is_hatched ? "https://api.iconify.design/noto-v1:paws.svg" : "/images/custom-egg.png"} 
+                        alt="Zipsa Egg"
+                        className={`w-full h-full object-contain ${!family.is_hatched ? 'drop-shadow-2xl' : ''}`}
+                      />
+                    </div>
+                    <div className="absolute inset-0 bg-zinc-400/5 blur-3xl rounded-full scale-150 -z-10" />
+                  </motion.div>
+
+                  <div className="absolute bottom-6 left-8 right-8 flex justify-between items-end">
+                    <div className="space-y-4 w-full max-w-[140px]">
+                      <div className="flex justify-between items-end">
+                        <span className="text-[9px] text-zinc-900 font-mono tracking-widest uppercase font-bold">HEART GAUGE</span>
+                        <span className="text-[10px] text-zinc-900 font-bold font-mono">{family.heart_points || 0}%</span>
+                      </div>
+                      <div className="h-[3px] w-full bg-zinc-50 rounded-full overflow-hidden">
+                        <motion.div 
+                          initial={{ width: 0 }}
+                          animate={{ width: `${family.heart_points || 0}%` }}
+                          className="h-full bg-black"
+                        />
+                      </div>
+                    </div>
+
+                    <div className="flex flex-col items-end gap-3">
+                      <span className="text-[9px] text-zinc-900 font-mono tracking-widest uppercase font-bold">ZIPSA STAMPS</span>
+                      <div className="flex gap-2">
+                        {[1, 2, 3, 4, 5, 6, 7].map(day => (
+                          <div 
+                            key={day} 
+                            className={`w-5 h-5 rounded-sm border-[1px] flex items-center justify-center transition-all duration-500 ${
+                              (family.active_days_count || 0) >= day 
+                                ? 'bg-black border-black text-white' 
+                                : 'border-zinc-100 bg-white'
+                            }`}
+                          >
+                            {(family.active_days_count || 0) >= day && <Heart size={10} fill="currentColor" />}
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+
+              {/* HATCH ACTION */}
+              {(family.heart_points >= 100 && family.active_days_count >= 7 && !family.is_hatched) && (
+                <motion.button
+                  initial={{ opacity: 0, y: 10 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  whileHover={{ scale: 1.02 }}
+                  whileTap={{ scale: 0.98 }}
+                  onClick={async () => {
+                    const { error } = await supabase.from('families').update({ is_hatched: true }).eq('id', family.id);
+                    if (!error) {
+                      setProfile({ ...profile, families: { ...family, is_hatched: true } });
+                    }
+                  }}
+                  className="w-full py-6 bg-black text-white rounded-2xl text-xs font-bold uppercase tracking-[0.4em] shadow-2xl shadow-black/20"
+                >
+                  기록의 결실: 부화하기
+                </motion.button>
+              )}
+            </motion.section>
+          );
+        })()}
 
         {/* Pets Section */}
         <section className="space-y-8">
@@ -676,7 +991,19 @@ export default function DashboardPage() {
                   {pet.photo_url ? (
                     <img src={pet.photo_url} alt={pet.name} className="w-full h-full object-cover transition-all duration-500" />
                   ) : (
-                    <div className="w-10 h-10 bg-zinc-200" />
+                    <div className="w-full h-full bg-zinc-50 flex items-center justify-center">
+                      <div className="w-12 h-12 text-zinc-200">
+                        {pet.species?.includes('고양이') ? (
+                          <svg viewBox="0 0 24 24" fill="currentColor" xmlns="http://www.w3.org/2000/svg">
+                            <path d="M12 2C10.5 2 9.17 2.48 8.08 3.28L6.44 2.1C6.26 1.97 6 1.97 5.82 2.1C5.64 2.23 5.59 2.47 5.71 2.66L6.96 4.67C4.64 6.34 3 9.07 3 12.2C3 17.06 6.94 21 11.8 21C16.66 21 20.6 17.06 20.6 12.2C20.6 9.07 18.96 6.34 16.64 4.67L17.89 2.66C18.02 2.47 17.97 2.23 17.78 2.1C17.6 1.97 17.34 1.97 17.16 2.1L15.52 3.28C14.43 2.48 13.11 2 11.61 2H12ZM9.5 11C10.33 11 11 11.67 11 12.5C11 13.33 10.33 14 9.5 14C8.67 14 8 13.33 8 12.5C8 11.67 8.67 11 9.5 11ZM14.5 11C15.33 11 16 11.67 16 12.5C16 13.33 15.33 14 14.5 14C13.67 14 13 13.33 13 12.5C13 11.67 13.67 11 14.5 11Z" />
+                          </svg>
+                        ) : (
+                          <svg viewBox="0 0 24 24" fill="currentColor" xmlns="http://www.w3.org/2000/svg">
+                            <path d="M12 2C10.5 2 9 3.5 9 5V6.5C9 7.33 8.33 8 7.5 8H6C4.34 8 3 9.34 3 11V16C3 17.66 4.34 19 6 19H7V21C7 21.55 7.45 22 8 22H10C10.55 22 11 21.55 11 21V19H13V21C13 21.55 13.45 22 14 22H16C16.55 22 17 21.55 17 21V19H18C19.66 19 21 17.66 21 16V11C21 9.34 19.66 8 18 8H16.5C15.67 8 15 7.33 15 6.5V5C15 3.5 13.5 2 12 2ZM9.5 11C10.33 11 11 11.67 11 12.5C11 13.33 10.33 14 9.5 14C8.67 14 8 13.33 8 12.5C8 11.67 8.67 11 9.5 11ZM14.5 11C15.33 11 16 11.67 16 12.5C16 13.33 15.33 14 14.5 14C13.67 14 13 13.33 13 12.5C13 11.67 13.67 11 14.5 11Z" />
+                          </svg>
+                        )}
+                      </div>
+                    </div>
                   )}
                 </div>
                 <div className="space-y-0.5 relative group/card">
@@ -715,7 +1042,7 @@ export default function DashboardPage() {
             {((): string[] => {
               const selectedPet = pets.find(p => p.id === selectedPetId);
               const isCat = selectedPet?.species?.includes('고양이');
-              return ['밥 먹이기', isCat ? '사냥놀이하기' : '산책하기', '약 먹기', '간식 먹기', '기타'];
+              return ['밥 먹이기', isCat ? '사냥놀이하기' : '산책하기', '약 먹이기', '간식 먹이기', '기타'];
             })().map((type) => (
               <button
                 key={type}
@@ -783,8 +1110,12 @@ export default function DashboardPage() {
         <section className="space-y-8">
           <h3 className="text-xs tracking-widest text-zinc-400 uppercase font-medium">최근 기록</h3>
           <div className="space-y-4">
-            {activities.length > 0 ? (
-              activities.map((activity) => (
+            {activities
+              .filter(a => a.pet_id === selectedPetId)
+              .length > 0 ? (
+              activities
+                .filter(a => a.pet_id === selectedPetId)
+                .map((activity) => (
                 <div key={activity.id} className="group relative py-6 border-b border-zinc-50 hover:bg-zinc-50/50 transition-colors px-2 -mx-2 rounded-lg">
                   <div className="flex justify-between items-start">
                     <div className="flex items-center gap-4">
@@ -850,7 +1181,14 @@ export default function DashboardPage() {
           <div className="fixed inset-0 bg-black/40 backdrop-blur-sm z-50 flex items-end sm:items-center justify-center p-0 sm:p-4 animate-in fade-in duration-300">
             <div className="bg-white w-full max-w-[450px] rounded-t-[32px] sm:rounded-3xl p-8 space-y-10 animate-in slide-in-from-bottom-10 duration-500 shadow-2xl">
               <div className="flex justify-between items-center">
-                <span className="text-[10px] tracking-widest text-zinc-400 uppercase font-mono">{recordingType} - STEP {recordStep}</span>
+                <span className="text-[10px] tracking-widest text-zinc-400 uppercase font-mono">
+                  {recordingType} — {recordStep} / {
+                    recordingType === '밥 먹이기' ? 2 :
+                    recordingType === '산책하기' || recordingType === '사냥놀이하기' ? 3 :
+                    recordingType === '약 먹이기' ? 2 :
+                    recordingType === '간식 먹이기' ? 2 : 1
+                  }
+                </span>
                 <button onClick={() => setRecordingType(null)} className="text-zinc-300 hover:text-black">
                   <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M18 6L6 18M6 6l12 12"/></svg>
                 </button>
