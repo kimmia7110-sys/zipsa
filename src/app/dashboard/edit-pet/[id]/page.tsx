@@ -65,20 +65,28 @@ export default function EditPetPage() {
     setMedications(Array.isArray(pet.medications) ? pet.medications : []);
     
     // Parse species string
-    if (pet.species.startsWith("강아지")) {
+    const species = pet.species || "";
+    if (species.startsWith("강아지")) {
       setMainCategory("dog");
-      const sub = pet.species.match(/\((.*)\)/)?.[1];
+      const sub = species.match(/\((.*)\)/)?.[1];
       if (sub) setSubCategory(sub);
-    } else if (pet.species.startsWith("고양이")) {
+    } else if (species.startsWith("고양이")) {
       setMainCategory("cat");
-      const sub = pet.species.match(/\((.*)\)/)?.[1];
+      const sub = species.match(/\((.*)\)/)?.[1];
       if (sub) setSubCategory(sub);
-    } else if (pet.species.startsWith("기타")) {
+    } else if (species.startsWith("기타")) {
       setMainCategory("other");
-      const other = pet.species.match(/\((.*)\)/)?.[1];
-      if (other) setOtherInput(other);
+      const sub = species.match(/\((.*)\)/)?.[1];
+      if (sub) setOtherInput(sub);
+    } else if (species === "햄스터") {
+      setMainCategory("hamster");
+    } else if (species === "토끼") {
+      setMainCategory("rabbit");
+    } else if (species === "페럿") {
+      setMainCategory("ferret");
     } else {
-      setMainCategory(pet.species.toLowerCase());
+      setMainCategory("other");
+      setOtherInput(species);
     }
     
     setLoading(false);

@@ -36,7 +36,7 @@ interface Activity {
   type: string;
   details: string;
   timestamp: string;
-  pets: { name: string };
+  pets?: { name: string };
 }
 
 export default function DashboardPage() {
@@ -200,7 +200,7 @@ export default function DashboardPage() {
 
       let pointsToAdd = 0;
       if (recordingType === '밥 먹이기' && activitiesToday.length < 3) pointsToAdd = 5;
-      else if ((recordingType === '산책하기' || recordingType === '사냥놀이하기') && activitiesToday.length < 3) pointsToAdd = 10;
+      else if ((recordingType === '산책하기' || recordingType === '사냥놀이하기' || recordingType === '자유시간주기' || recordingType === '운동시키기') && activitiesToday.length < 3) pointsToAdd = 10;
       else if (recordingType === '간식 먹이기' && activitiesToday.length < 2) pointsToAdd = 5;
 
       let newActiveDays = family.active_days_count || 0;
@@ -219,7 +219,7 @@ export default function DashboardPage() {
           details: details,
           timestamp: new Date().toISOString()
         }])
-        .select();
+        .select('*, pets(name)');
 
       const familyPromise = supabase
         .from('families')
@@ -529,8 +529,10 @@ export default function DashboardPage() {
       );
     }
 
-    if (recordingType === '산책하기' || recordingType === '사냥놀이하기') {
-      const activityLabel = recordingType === '사냥놀이하기' ? '놀이' : '산책';
+    if (recordingType === '산책하기' || recordingType === '사냥놀이하기' || recordingType === '자유시간주기' || recordingType === '운동시키기') {
+      const activityLabel = recordingType === '사냥놀이하기' ? '놀이' : 
+                          recordingType === '자유시간주기' ? '자유시간' : 
+                          recordingType === '운동시키기' ? '운동' : '산책';
       const historyActions = activities.filter(a => a.pet_id === selectedPetId && a.type === recordingType);
       const lastAction = historyActions[0];
       const today = new Date().toLocaleDateString();
@@ -562,7 +564,11 @@ export default function DashboardPage() {
             <div className="space-y-10">
               <div className="space-y-4">
                 <span className="text-[10px] text-zinc-400 uppercase tracking-widest">DURATION</span>
-                <h2 className="text-2xl font-light tracking-tight">얼마나 {recordingType === '사냥놀이하기' ? '놀아주셨나요?' : '산책했나요?'}</h2>
+                <h2 className="text-2xl font-light tracking-tight">
+                  {recordingType === '사냥놀이하기' ? '얼마나 놀아주셨나요?' : 
+                   recordingType === '자유시간주기' ? '자유시간을 얼마나 가졌나요?' : 
+                   recordingType === '운동시키기' ? '얼마나 운동시켰나요?' : '얼마나 산책했나요?'}
+                </h2>
               </div>
               <div className="space-y-6">
                 <div className="flex items-end gap-2 border-b border-zinc-100 pb-2">
@@ -602,7 +608,9 @@ export default function DashboardPage() {
             <div className="space-y-10">
               <div className="space-y-4">
                 <span className="text-[10px] text-zinc-400 uppercase tracking-widest">REACTION</span>
-                <h2 className="text-2xl font-light tracking-tight">반응은 어땠나요?</h2>
+                <h2 className="text-2xl font-light tracking-tight">
+                  {recordingType === '자유시간주기' ? '자유시간을 얼마나 즐겼나요?' : '반응은 어땠나요?'}
+                </h2>
               </div>
               <div className="grid grid-cols-1 gap-3">
                 {[
@@ -637,7 +645,7 @@ export default function DashboardPage() {
             <div className="space-y-10">
               <div className="space-y-4">
                 <span className="text-[10px] text-zinc-400 uppercase tracking-widest">MEMO</span>
-                <h2 className="text-2xl font-light tracking-tight">구체적으로 어떤 {recordingType === '사냥놀이하기' ? '놀이' : '산책'}였나요?</h2>
+                <h2 className="text-2xl font-light tracking-tight">구체적으로 어떤 {activityLabel}였나요?</h2>
               </div>
               <input
                 autoFocus
@@ -866,7 +874,7 @@ export default function DashboardPage() {
           
           const counts = {
             meals: activitiesToday.filter(a => a.type === '밥 먹이기').length,
-            walks: activitiesToday.filter(a => a.type === '산책하기' || a.type === '사냥놀이하기').length,
+            walks: activitiesToday.filter(a => a.type === '산책하기' || a.type === '사냥놀이하기' || a.type === '자유시간주기' || a.type === '운동시키기').length,
             treats: activitiesToday.filter(a => a.type === '간식 먹이기').length,
           };
 
@@ -1041,8 +1049,14 @@ export default function DashboardPage() {
           <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 gap-4">
             {((): string[] => {
               const selectedPet = pets.find(p => p.id === selectedPetId);
-              const isCat = selectedPet?.species?.includes('고양이');
-              return ['밥 먹이기', isCat ? '사냥놀이하기' : '산책하기', '약 먹이기', '간식 먹이기', '기타'];
+              const species = (selectedPet?.species || '').toLowerCase().trim();
+              const isCat = species.includes('고양이');
+              const isHamster = species.includes('햄스터');
+              const isSmallAnimal = species.includes('페럿') || species.includes('토끼') || species.includes('새');
+              
+              const activityLabel = isHamster ? '운동시키기' : isSmallAnimal ? '자유시간주기' : (isCat ? '사냥놀이하기' : '산책하기');
+              
+              return ['밥 먹이기', activityLabel, '약 먹이기', '간식 먹이기', '기타'];
             })().map((type) => (
               <button
                 key={type}
@@ -1123,7 +1137,7 @@ export default function DashboardPage() {
                         {activity.type[0]}
                       </div>
                       <div className="space-y-1">
-                        <p className="text-[12px] font-bold text-zinc-900">{activity.pets.name} — {activity.type}</p>
+                        <p className="text-[12px] font-bold text-zinc-900">{activity.pets?.name || "아이"} — {activity.type}</p>
                         <p className="text-[11px] text-zinc-500 leading-relaxed font-normal">{activity.details || '상세 내용 없음'}</p>
                         <p className="text-[10px] text-zinc-300 font-mono pt-1">
                           {new Date(activity.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
