@@ -36,7 +36,8 @@ export default function ProfilePage() {
         const { data: targetProfile } = await supabase
           .from("profiles")
           .select("id, name, nickname, phone, gender, address, avatar_url")
-          .eq("email", "kimmia7110@gmail.com")
+          .in("email", ["kimmia7110@gmail.com", "kijj7110@gmail.com"])
+          .limit(1)
           .maybeSingle();
         
         if (targetProfile) {
@@ -72,7 +73,15 @@ export default function ProfilePage() {
             return;
           }
         }
-        // 마스터 모드인데 프로필이 없어도 튕기지 않음
+        // [마스터 구제책] 가입된 프로필이 아예 없더라도 개발을 위해 기본 정보를 주입합니다.
+        setFormData({
+          name: "김민정",
+          nickname: "민정님",
+          phone: "010-0000-0000",
+          gender: "여성",
+          address: "서울특별시",
+          avatar_url: ""
+        });
         setLoading(false);
         return;
       }
@@ -107,7 +116,7 @@ export default function ProfilePage() {
         });
       }
     } catch (error: any) {
-      console.error("Error fetching profile:", error.message || error);
+      console.error("ProfilePage Fetch Error:", JSON.stringify(error, null, 2));
     } finally {
       if (!isMasterMode) setLoading(false);
     }
@@ -119,6 +128,17 @@ export default function ProfilePage() {
       const isMasterMode = localStorage.getItem("zipsa_master_mode") === "true";
       let userId = profile?.id;
       
+      if (!userId && isMasterMode) {
+        const { data: targetProfile } = await supabase
+          .from("profiles")
+          .select("id")
+          .in("email", ["kimmia7110@gmail.com", "kijj7110@gmail.com"])
+          .limit(1)
+          .maybeSingle();
+        
+        if (targetProfile) userId = targetProfile.id;
+      }
+
       if (!userId) {
         const { data: authData } = await supabase.auth.getUser();
         userId = authData?.user?.id;
@@ -150,6 +170,9 @@ export default function ProfilePage() {
       if (error) throw error;
       alert("성공적으로 수정되었습니다!");
       router.push("/dashboard");
+    } catch (error: any) {
+      console.error("ProfilePage Update Error:", JSON.stringify(error, null, 2));
+      alert("수정 중 오류가 발생했습니다: " + (error.message || JSON.stringify(error)));
     } finally {
       setIsSubmitting(false);
     }
