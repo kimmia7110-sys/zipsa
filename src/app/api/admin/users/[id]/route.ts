@@ -1,5 +1,5 @@
 import { NextRequest } from 'next/server';
-import { supabaseAdmin } from '@/lib/supabase-admin';
+import { getSupabaseAdmin } from '@/lib/supabase-admin';
 import { verifyAdmin } from '@/lib/admin-auth';
 
 export async function GET(
@@ -13,12 +13,12 @@ export async function GET(
 
   const { id } = await params;
 
-  const { data: { user }, error: authError } = await supabaseAdmin.auth.admin.getUserById(id);
+  const { data: { user }, error: authError } = await getSupabaseAdmin().auth.admin.getUserById(id);
   if (authError || !user) {
     return Response.json({ error: 'User not found' }, { status: 404 });
   }
 
-  const { data: profile } = await supabaseAdmin
+  const { data: profile } = await getSupabaseAdmin()
     .from('profiles')
     .select('name, nickname, phone, gender, address, role, created_at')
     .eq('id', id)
@@ -51,7 +51,7 @@ export async function PATCH(
     }
   }
 
-  const { error } = await supabaseAdmin
+  const { error } = await getSupabaseAdmin()
     .from('profiles')
     .update(updates)
     .eq('id', id);
@@ -78,7 +78,7 @@ export async function DELETE(
     return Response.json({ error: 'Cannot delete yourself' }, { status: 400 });
   }
 
-  const { error } = await supabaseAdmin.auth.admin.deleteUser(id);
+  const { error } = await getSupabaseAdmin().auth.admin.deleteUser(id);
   if (error) {
     return Response.json({ error: error.message }, { status: 500 });
   }

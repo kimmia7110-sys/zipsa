@@ -1,5 +1,5 @@
 import { NextRequest } from 'next/server';
-import { supabaseAdmin } from '@/lib/supabase-admin';
+import { getSupabaseAdmin } from '@/lib/supabase-admin';
 import { verifyAdmin } from '@/lib/admin-auth';
 
 export async function GET(request: NextRequest) {
@@ -10,12 +10,12 @@ export async function GET(request: NextRequest) {
 
   const search = request.nextUrl.searchParams.get('search') || '';
 
-  const { data: { users }, error: authError } = await supabaseAdmin.auth.admin.listUsers();
+  const { data: { users }, error: authError } = await getSupabaseAdmin().auth.admin.listUsers();
   if (authError) {
     return Response.json({ error: authError.message }, { status: 500 });
   }
 
-  const { data: profiles, error: profileError } = await supabaseAdmin
+  const { data: profiles, error: profileError } = await getSupabaseAdmin()
     .from('profiles')
     .select('id, name, nickname, phone, gender, address, role, created_at');
   if (profileError) {
