@@ -1178,8 +1178,8 @@ export default function DashboardPage() {
         </footer>
 
         {recordingType && (
-          <div className="fixed inset-0 bg-black/40 backdrop-blur-sm z-50 flex items-end sm:items-center justify-center p-0 sm:p-4 animate-in fade-in duration-300">
-            <div className="bg-white w-full max-w-[450px] rounded-t-[32px] sm:rounded-3xl p-8 space-y-10 animate-in slide-in-from-bottom-10 duration-500 shadow-2xl">
+          <div className="fixed inset-0 bg-black/40 backdrop-blur-sm z-50 flex items-center justify-center p-6 animate-in fade-in duration-300">
+            <div className="bg-white w-full max-w-[450px] rounded-[32px] p-8 space-y-10 animate-in zoom-in-95 duration-500 shadow-2xl">
               <div className="flex justify-between items-center">
                 <span className="text-[10px] tracking-widest text-zinc-400 uppercase font-mono">
                   {recordingType} — {recordStep} / {
