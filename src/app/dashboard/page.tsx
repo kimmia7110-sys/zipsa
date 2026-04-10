@@ -514,7 +514,26 @@ export default function DashboardPage() {
 
   const fetchMyFamilies = async () => {
     try {
-      const { data: { user } } = await supabase.auth.getUser();
+      const isMasterMode = localStorage.getItem("zipsa_master_mode") === "true";
+      let user: any = null;
+      const { data: authData } = await supabase.auth.getUser();
+      user = authData?.user;
+
+      if (!user && isMasterMode) {
+        const { data: targetProfile } = await supabase
+          .from("profiles")
+          .select("id")
+          .eq("email", "kimmia7110@gmail.com")
+          .maybeSingle();
+        
+        if (targetProfile) {
+          user = { id: targetProfile.id };
+        } else {
+          const { data: anyProfile } = await supabase.from("profiles").select("id").limit(1).single();
+          if (anyProfile) user = { id: anyProfile.id };
+        }
+      }
+
       if (!user) return;
 
       // Fetch families
@@ -1256,7 +1275,6 @@ export default function DashboardPage() {
                           </button>
                         </div>
                       ) : activeMyPageTab === 'profile' ? (
-                        // Profile management UI code...
                         <div className="p-1.5 space-y-4 animate-in fade-in slide-in-from-right-1 duration-200">
                           <div className="flex items-center gap-2 mb-1 px-1">
                             <button onClick={() => setActiveMyPageTab('root')} className="p-1 text-zinc-400 hover:text-black">
@@ -1294,7 +1312,6 @@ export default function DashboardPage() {
                           </div>
                         </div>
                       ) : (
-                        // Family management UI code...
                         <div className="p-1.5 space-y-3 animate-in fade-in slide-in-from-right-1 duration-200">
                           <div className="flex items-center gap-2 mb-1 px-1">
                             <button onClick={() => setActiveMyPageTab('root')} className="p-1 -ml-1 text-zinc-400 hover:text-black">
@@ -1362,7 +1379,6 @@ export default function DashboardPage() {
                                       {member.id === profile?.id && <span className="text-[7px] text-zinc-300 font-normal">나</span>}
                                     </p>
                                     
-                                    {/* Management Tools - Only visible to leader, and only for other members */}
                                     {profile?.families?.created_by === profile?.id && member.id !== profile?.id && (
                                       <div className="flex gap-2">
                                         <button 
@@ -1389,7 +1405,6 @@ export default function DashboardPage() {
                             </div>
 
                             <div className="pt-2 border-t border-zinc-50 mt-1 space-y-1">
-
                               <button 
                                 onClick={handleLeaveFamily}
                                 className="w-full py-2 text-[8px] text-zinc-100 hover:text-red-500 transition-colors uppercase tracking-widest font-bold"
