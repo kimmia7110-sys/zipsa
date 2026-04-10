@@ -65,7 +65,8 @@ export default function DashboardPage() {
   const [editMealData, setEditMealData] = useState({ type: '', amountValue: '', amountUnit: 'g' });
   const [isMyPageOpen, setIsMyPageOpen] = useState(false);
   const [familyMembers, setFamilyMembers] = useState<any[]>([]);
-  const [activeMyPageTab, setActiveMyPageTab] = useState<'root' | 'family' | 'profile'>('root');
+  const [myFamilies, setMyFamilies] = useState<any[]>([]);
+  const [activeMyPageTab, setActiveMyPageTab] = useState<'root' | 'family' | 'profile' | 'switch'>('root');
   const [profileDraft, setProfileDraft] = useState({ nickname: '', phone: '' });
 
   useEffect(() => {
@@ -134,6 +135,37 @@ export default function DashboardPage() {
   const [healthDraft, setHealthDraft] = useState<any[]>([]);
   const [activeTab, setActiveTab] = useState<'status' | 'medical'>('status');
 
+  useEffect(() => {
+    const subscription = supabase
+      .channel('dashboard_realtime')
+      .on('postgres_changes', { 
+        event: '*', 
+        schema: 'public', 
+        table: 'activities' 
+      }, () => {
+        fetchData(); // Re-fetch all data when activities change
+      })
+      .on('postgres_changes', {
+        event: '*',
+        schema: 'public',
+        table: 'pets'
+      }, () => {
+        fetchData();
+      })
+      .on('postgres_changes', {
+        event: '*',
+        schema: 'public',
+        table: 'families'
+      }, () => {
+        fetchData();
+      })
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(subscription);
+    };
+  }, [selectedPetId]);
+
   const handleUpdateHealth = async () => {
     if (!selectedPetId) return;
     const { error } = await supabase
@@ -180,6 +212,13 @@ export default function DashboardPage() {
     if (!selectedPetId || !recordingType) return;
     setIsSubmitting(true);
     
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) {
+      alert("로그인이 필요합니다.");
+      setIsSubmitting(false);
+      return;
+    }
+
     // 1. Determine Activity Details
     let details = "";
     if (recordingType === '밥 먹이기') {
@@ -283,9 +322,186 @@ export default function DashboardPage() {
 
   const handleDeleteActivity = async (id: string) => {
     if (!confirm("기록을 삭제하시겠습니까?")) return;
-    const { error } = await supabase.from('activities').delete().eq('id', id);
-    if (error) alert("삭제에 실패했습니다.");
-    else setActivities(activities.filter(a => a.id !== id));
+
+    try {
+      // 1. Find the activity to be deleted to check its type and date
+      const activityToDelete = activities.find(a => a.id === id);
+      if (!activityToDelete) return;
+
+      const today = new Date().toISOString().split('T')[0];
+      const isToday = activityToDelete.timestamp.startsWith(today);
+      const family = profile?.families;
+
+      if (isToday && family) {
+        // Calculate points to deduct
+        let pointsToDeduct = 0;
+        const type = activityToDelete.type;
+        
+        // Count how many activities of this type are left for today (EXCLUDING the one we delete)
+        const othersOfSameTypeToday = activities.filter(a => 
+          a.id !== id && 
+          a.timestamp.startsWith(today) && 
+          a.type === type
+        );
+
+        if (type === '밥 먹이기' && othersOfSameTypeToday.length < 3) pointsToDeduct = 5;
+        else if ((type === '산책하기' || type === '사냥놀이하기' || type === '자유시간주기' || type === '운동시키기') && othersOfSameTypeToday.length < 3) pointsToDeduct = 10;
+        else if (type === '간식 먹이기' && othersOfSameTypeToday.length < 2) pointsToDeduct = 5;
+
+        // If this was the LAST activity of ANY kind today, we might need to reset active days or last_activity_date
+        const anyOthersToday = activities.filter(a => a.id !== id && a.timestamp.startsWith(today));
+        
+        let newActiveDays = family.active_days_count;
+        let newLastDate = family.last_activity_date;
+
+        if (anyOthersToday.length === 0) {
+          // If no other activities left today, reduce active day count and clear last activity date
+          newActiveDays = Math.max(0, (family.active_days_count || 0) - 1);
+          // Set last date to yesterday or null (for simplicity, we can set to a dummy past date or null)
+          newLastDate = null; 
+        }
+
+        const newHeartPoints = Math.max(0, (family.heart_points || 0) - pointsToDeduct);
+
+        // Update family stats
+        await supabase
+          .from('families')
+          .update({
+            heart_points: newHeartPoints,
+            active_days_count: newActiveDays,
+            last_activity_date: newLastDate
+          })
+          .eq('id', family.id);
+      }
+
+      // 2. Perform the deletion
+      const { error } = await supabase.from('activities').delete().eq('id', id);
+      if (error) throw error;
+
+      // 3. Update local state
+      setActivities(activities.filter(a => a.id !== id));
+      
+    } catch (error: any) {
+      alert("삭제 중 오류가 발생했습니다: " + error.message);
+    }
+  };
+
+  const handleRemoveMember = async (memberId: string, memberNickname: string) => {
+    if (!profile?.families?.id) return;
+    if (!confirm(`${memberNickname}님을 가족에서 내보내시겠습니까?`)) return;
+
+    try {
+      const { error } = await supabase
+        .from('profiles')
+        .update({ family_id: null })
+        .eq('id', memberId);
+
+      if (error) throw error;
+      
+      // Update local state by removing the member from familyMembers
+      setFamilyMembers(familyMembers.filter(m => m.id !== memberId));
+      alert(`${memberNickname}님이 가족에서 제외되었습니다.`);
+    } catch (error: any) {
+      alert("멤버 내보내기 중 오류가 발생했습니다: " + error.message);
+    }
+  };
+
+  const handleTransferLeadership = async (memberId: string, memberNickname: string) => {
+    if (!profile?.families?.id) return;
+    if (!confirm(`${memberNickname}님에게 그룹장 권한을 넘기시겠습니까?`)) return;
+
+    try {
+      const { error } = await supabase
+        .from('families')
+        .update({ created_by: memberId })
+        .eq('id', profile.families.id);
+
+      if (error) throw error;
+
+      // Update local profile state to reflect that current user is no longer the creator
+      setProfile({
+        ...profile,
+        families: {
+          ...profile.families,
+          created_by: memberId
+        }
+      });
+      alert(`그룹장 권한이 ${memberNickname}님에게 위임되었습니다.`);
+    } catch (error: any) {
+      alert("권한 위임 중 오류가 발생했습니다: " + error.message);
+    }
+  };
+
+  const handleLeaveFamily = async () => {
+    if (!profile?.families?.id) return;
+
+    // Safety check for leader
+    const isLeader = profile.families.created_by === profile.id;
+    if (isLeader && familyMembers.length > 1) {
+      alert("그룹장은 탈퇴 전 다른 멤버에게 권한을 위임해야 합니다.");
+      return;
+    }
+
+    if (!confirm("정말 가족 그룹을 탈퇴하시겠습니까? 기록된 활동 내역은 삭제되지 않습니다.")) return;
+
+    try {
+      const { error } = await supabase
+        .from('profiles')
+        .update({ family_id: null })
+        .eq('id', profile.id);
+
+      if (error) throw error;
+
+      alert("가족 그룹에서 탈퇴되었습니다.");
+      window.location.reload(); // Refresh to go back to "Get Started" or empty state
+    } catch (error: any) {
+      alert("탈퇴 중 오류가 발생했습니다: " + error.message);
+    }
+  };
+
+  const fetchMyFamilies = async () => {
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) return;
+
+      // Fetch families where user is either a member OR the creator
+      const { data, error } = await supabase
+        .from('families')
+        .select('id, name, invite_code, created_by');
+      
+      if (error) throw error;
+
+      // For now, since profiles table only has one family_id, 
+      // we'll filter families that are actually reachable or owned by the user
+      // In a real multi-family app, we'd have a junction table.
+      // Filter: Created by user OR currently joined family
+      const filtered = data.filter(f => f.created_by === user.id || f.id === profile?.family_id);
+      setMyFamilies(filtered);
+    } catch (error: any) {
+      console.error("Error fetching families:", error.message);
+    }
+  };
+
+  const handleSwitchFamily = async (familyId: string, familyName: string) => {
+    if (!profile?.id) return;
+    if (familyId === profile.family_id) {
+      alert("이미 선택된 가족입니다.");
+      return;
+    }
+
+    try {
+      const { error } = await supabase
+        .from('profiles')
+        .update({ family_id: familyId })
+        .eq('id', profile.id);
+
+      if (error) throw error;
+
+      alert(`${familyName} 그룹으로 전환되었습니다.`);
+      window.location.reload();
+    } catch (error: any) {
+      alert("그룹 전환 중 오류가 발생했습니다: " + error.message);
+    }
   };
 
   const handleUpdateActivity = async () => {
@@ -999,16 +1215,96 @@ export default function DashboardPage() {
                                     <div className="w-5 h-5 rounded-full bg-zinc-100 flex items-center justify-center text-[7px] font-bold text-zinc-400 overflow-hidden shrink-0">
                                       {member.nickname?.[0] || member.name?.[0] || '?'}
                                     </div>
-                                    <p className="text-[9px] font-semibold truncate flex-1">
+                                    <p className="text-[9px] font-semibold truncate flex-1 flex items-center gap-1">
                                       {member.nickname || member.name || '이름 없음'} 
-                                      {member.id === profile?.id && <span className="text-[7px] text-zinc-300 font-normal ml-1">나</span>}
+                                      {member.id === profile?.families?.created_by && (
+                                        <span className="text-[7px] bg-zinc-900 text-white px-1.5 py-0.5 rounded-full font-bold uppercase tracking-tighter scale-90">Leader</span>
+                                      )}
+                                      {member.id === profile?.id && <span className="text-[7px] text-zinc-300 font-normal">나</span>}
                                     </p>
+                                    
+                                    {/* Management Tools - Only visible to leader, and only for other members */}
+                                    {profile?.families?.created_by === profile?.id && member.id !== profile?.id && (
+                                      <div className="flex gap-2">
+                                        <button 
+                                          onClick={() => handleTransferLeadership(member.id, member.nickname || member.name)}
+                                          className="text-[8px] text-zinc-400 hover:text-blue-500 transition-colors font-medium border-r border-zinc-100 pr-2"
+                                          title="그룹장 넘기기"
+                                        >
+                                          위임
+                                        </button>
+                                        <button 
+                                          onClick={() => handleRemoveMember(member.id, member.nickname || member.name)}
+                                          className="text-[8px] text-zinc-400 hover:text-red-500 transition-colors font-medium"
+                                          title="멤버 내보내기"
+                                        >
+                                          삭제
+                                        </button>
+                                      </div>
+                                    )}
                                   </div>
                                 ))
                               ) : (
                                 <p className="text-[8px] text-zinc-300 text-center py-4">합류한 멤버가 없습니다</p>
                               )}
                             </div>
+
+                            <div className="pt-2 border-t border-zinc-50 mt-1 space-y-1">
+                              <button 
+                                onClick={() => {
+                                  fetchMyFamilies();
+                                  setActiveMyPageTab('switch');
+                                }}
+                                className="w-full py-2 text-[8px] text-zinc-400 hover:text-black transition-colors uppercase tracking-widest font-bold border border-zinc-50 rounded-lg"
+                              >
+                                그룹 전환하기
+                              </button>
+                              <button 
+                                onClick={handleLeaveFamily}
+                                className="w-full py-2 text-[8px] text-zinc-100 hover:text-red-500 transition-colors uppercase tracking-widest font-bold"
+                              >
+                                가족 그룹 탈퇴하기
+                              </button>
+                            </div>
+                          </div>
+                        </div>
+                      )}
+
+                      {activeMyPageTab === 'switch' && (
+                        <div className="space-y-4 animate-in fade-in slide-in-from-right-2 duration-300">
+                          <div className="flex items-center gap-2 mb-2">
+                            <button onClick={() => setActiveMyPageTab('family')} className="p-1 -ml-1 text-zinc-400 hover:text-black">
+                              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><path d="M15 18l-6-6 6-6"/></svg>
+                            </button>
+                            <span className="text-[10px] font-bold uppercase tracking-tight">Switch Group</span>
+                          </div>
+
+                          <div className="space-y-1.5 max-h-[200px] overflow-y-auto pr-1 custom-scrollbar">
+                            {myFamilies.length > 0 ? (
+                              myFamilies.map((fam: any) => (
+                                <button
+                                  key={fam.id}
+                                  onClick={() => handleSwitchFamily(fam.id, fam.name)}
+                                  className={`w-full flex items-center justify-between p-3 rounded-xl border transition-all text-left ${
+                                    fam.id === profile?.family_id 
+                                      ? 'border-zinc-900 bg-zinc-900 text-white' 
+                                      : 'border-zinc-100 bg-white text-zinc-900 hover:border-zinc-300'
+                                  }`}
+                                >
+                                  <div>
+                                    <p className="text-[10px] font-bold">{fam.name}</p>
+                                    <p className={`text-[8px] font-mono ${fam.id === profile?.family_id ? 'text-zinc-400' : 'text-zinc-300'}`}>
+                                      CODE: {fam.invite_code}
+                                    </p>
+                                  </div>
+                                  {fam.id === profile?.family_id && (
+                                    <span className="text-[8px] font-bold uppercase tracking-tighter bg-white/10 px-1.5 py-0.5 rounded">Active</span>
+                                  )}
+                                </button>
+                              ))
+                            ) : (
+                              <p className="text-[8px] text-zinc-300 text-center py-4 uppercase tracking-widest">저장된 다른 그룹이 없습니다</p>
+                            )}
                           </div>
                         </div>
                       )}
@@ -1307,34 +1603,36 @@ export default function DashboardPage() {
                         </p>
                       </div>
                     </div>
-                    <div className="flex gap-4 opacity-100 md:opacity-0 md:group-hover:opacity-100 transition-opacity">
-                      <button 
-                        onClick={() => {
-                          setEditingActivity(activity);
-                          if (activity.type === '밥 먹이기') {
-                            // Parse "Type - 60g"
-                            const [typePart, amountPart] = activity.details.split(' - ');
-                            const amountMatch = amountPart?.match(/^(\d+)(.*)$/);
-                            setEditMealData({
-                              type: typePart || '',
-                              amountValue: amountMatch?.[1] || '',
-                              amountUnit: amountMatch?.[2] || 'g'
-                            });
-                          } else {
-                            setEditDetails(activity.details);
-                          }
-                        }}
-                        className="text-[10px] text-zinc-400 hover:text-black transition-colors"
-                      >
-                        수정
-                      </button>
-                      <button 
-                        onClick={() => handleDeleteActivity(activity.id)}
-                        className="text-[10px] text-zinc-200 hover:text-red-400 transition-colors"
-                      >
-                        삭제
-                      </button>
-                    </div>
+                    {activity.user_id === profile?.id && (
+                      <div className="flex gap-4 opacity-100 md:opacity-0 md:group-hover:opacity-100 transition-opacity">
+                        <button 
+                          onClick={() => {
+                            setEditingActivity(activity);
+                            if (activity.type === '밥 먹이기') {
+                              // Parse "Type - 60g"
+                              const [typePart, amountPart] = activity.details.split(' - ');
+                              const amountMatch = amountPart?.match(/^(\d+)(.*)$/);
+                              setEditMealData({
+                                type: typePart || '',
+                                amountValue: amountMatch?.[1] || '',
+                                amountUnit: amountMatch?.[2] || 'g'
+                              });
+                            } else {
+                              setEditDetails(activity.details);
+                            }
+                          }}
+                          className="text-[10px] text-zinc-400 hover:text-black transition-colors"
+                        >
+                          수정
+                        </button>
+                        <button 
+                          onClick={() => handleDeleteActivity(activity.id)}
+                          className="text-[10px] text-zinc-200 hover:text-red-400 transition-colors"
+                        >
+                          삭제
+                        </button>
+                      </div>
+                    )}
                   </div>
                 </div>
               ))
