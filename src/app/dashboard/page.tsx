@@ -1617,7 +1617,7 @@ export default function DashboardPage() {
             <h3 className="text-xs tracking-widest text-zinc-900 uppercase font-semibold">아이 프로필을 선택해주세요</h3>
             <Link href="/dashboard/add-pet" className="text-[10px] underline underline-offset-4 decoration-[0.5px] hover:text-zinc-500">아이 추가하기</Link>
           </div>
-          <div className="flex overflow-x-auto gap-4 py-2 pb-8 snap-x no-scrollbar -mx-6 px-6">
+          <div className="flex overflow-x-auto gap-4 py-2 pb-8 snap-x no-scrollbar -mx-6 px-6 after:content-[''] after:shrink-0 after:w-2">
             {pets.map((pet) => (
               <div key={pet.id} onClick={() => setSelectedPetId(pet.id)} className={`group shrink-0 w-[180px] snap-start space-y-4 cursor-pointer p-3 rounded-2xl transition-all ${selectedPetId === pet.id ? 'bg-zinc-50 ring-1 ring-black ring-offset-4' : 'hover:bg-zinc-50'}`}>
                 <div className="aspect-square bg-white border border-zinc-100 flex items-center justify-center rounded-2xl overflow-hidden shadow-sm transition-colors">
