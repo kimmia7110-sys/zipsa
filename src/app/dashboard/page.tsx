@@ -29,6 +29,7 @@ interface Pet {
   active_days_count: number;
   last_activity_date: string | null;
   is_hatched: boolean;
+  created_at?: string;
 }
 
 interface Activity {
