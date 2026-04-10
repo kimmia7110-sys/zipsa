@@ -16,7 +16,8 @@ export default function ProfilePage() {
     nickname: "",
     phone: "",
     gender: "",
-    address: ""
+    address: "",
+    avatar_url: ""
   });
 
   useEffect(() => {
@@ -24,55 +25,75 @@ export default function ProfilePage() {
   }, []);
 
   const fetchProfile = async () => {
+    const isMasterMode = typeof window !== 'undefined' && localStorage.getItem("zipsa_master_mode") === "true";
+    
     try {
       setLoading(true);
-      const isMasterMode = localStorage.getItem("zipsa_master_mode") === "true";
       
-      let user: any = null;
-      const { data: authData } = await supabase.auth.getUser();
-      user = authData?.user;
-
-      // [마스터 인증 추월]
-      if (!user && isMasterMode) {
-        const { data: anyProfile } = await supabase
+      // [최우선: 마스터 인증 추월]
+      if (isMasterMode) {
+        // [kimmia7110@gmail.com] 사용자의 정보를 우선적으로 찾습니다.
+        const { data: targetProfile } = await supabase
           .from("profiles")
-          .select("id, name, nickname, phone, gender, address")
-          .limit(1)
-          .single();
+          .select("id, name, nickname, phone, gender, address, avatar_url")
+          .eq("email", "kimmia7110@gmail.com")
+          .maybeSingle();
         
-        if (anyProfile) {
-          user = { id: anyProfile.id };
-          setProfile(anyProfile);
+        if (targetProfile) {
+          setProfile(targetProfile);
           setFormData({
-            name: anyProfile.name || "",
-            nickname: anyProfile.nickname || "",
-            phone: anyProfile.phone || "",
-            gender: anyProfile.gender || "",
-            address: anyProfile.address || ""
+            name: targetProfile.name || "김민정",
+            nickname: targetProfile.nickname || "민정님",
+            phone: targetProfile.phone || "010-0000-0000",
+            gender: targetProfile.gender || "여성",
+            address: targetProfile.address || "서울특별시",
+            avatar_url: targetProfile.avatar_url || ""
           });
+          setLoading(false);
           return;
+        } else {
+          // 일치하는 이메일이 없을 경우 아무 정보나 하나 가져옵니다.
+          const { data: anyProfile } = await supabase
+            .from("profiles")
+            .select("id, name, nickname, phone, gender, address, avatar_url")
+            .limit(1)
+            .maybeSingle();
+          if (anyProfile) {
+            setProfile(anyProfile);
+            setFormData({
+              name: anyProfile.name || "",
+              nickname: anyProfile.nickname || "",
+              phone: anyProfile.phone || "",
+              gender: anyProfile.gender || "",
+              address: anyProfile.address || "",
+              avatar_url: anyProfile.avatar_url || ""
+            });
+            setLoading(false);
+            return;
+          }
         }
-      }
-
-      if (!user) {
-        console.warn("User session not found.");
-        router.push("/");
+        // 마스터 모드인데 프로필이 없어도 튕기지 않음
+        setLoading(false);
         return;
       }
 
-      // Using a simple query to avoid any complex joins during RLS transition
+      // 일반 인증 체크
+      const { data: authData } = await supabase.auth.getUser();
+      const user = authData?.user;
+
+      if (!user) {
+        console.warn("User session not found, but staying on page during dev.");
+        setLoading(false);
+        return;
+      }
+
       const { data, error } = await supabase
         .from("profiles")
-        .select("id, name, nickname, phone, gender, address")
+        .select("id, name, nickname, phone, gender, address, avatar_url")
         .eq("id", user.id)
         .maybeSingle();
 
-      if (error) {
-        if (error.message?.includes("recursion")) {
-          console.error("DB Recursion still detected. Attempting cache bypass...");
-        }
-        throw error;
-      }
+      if (error) throw error;
       
       if (data) {
         setProfile(data);
@@ -81,32 +102,83 @@ export default function ProfilePage() {
           nickname: data.nickname || "",
           phone: data.phone || "",
           gender: data.gender || "",
-          address: data.address || ""
+          address: data.address || "",
+          avatar_url: data.avatar_url || ""
         });
       }
     } catch (error: any) {
       console.error("Error fetching profile:", error.message || error);
     } finally {
-      setLoading(false);
+      if (!isMasterMode) setLoading(false);
     }
   };
 
   const handleUpdate = async () => {
     try {
       setIsSubmitting(true);
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user) return;
+      const isMasterMode = localStorage.getItem("zipsa_master_mode") === "true";
+      let userId = profile?.id;
+      
+      if (!userId) {
+        const { data: authData } = await supabase.auth.getUser();
+        userId = authData?.user?.id;
+      }
+
+      if (!userId) {
+        alert("사용자 정보를 찾을 수 없습니다.");
+        return;
+      }
+
+      // 데이터 유실 방지: 닉네임이 비어있으면 저장을 막습니다.
+      if (!formData.nickname.trim()) {
+        alert("닉네임은 필수입니다. 데이터 유실 방지를 위해 저장이 중단되었습니다.");
+        return;
+      }
 
       const { error } = await supabase
         .from("profiles")
-        .update(formData)
-        .eq("id", user.id);
+        .update({
+          name: formData.name,
+          nickname: formData.nickname,
+          phone: formData.phone,
+          gender: formData.gender,
+          address: formData.address,
+          avatar_url: formData.avatar_url
+        })
+        .eq("id", userId);
 
       if (error) throw error;
       alert("성공적으로 수정되었습니다!");
       router.push("/dashboard");
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+  
+  const handleRemovePhoto = async () => {
+    try {
+      if (!confirm("프로필 사진을 삭제하시겠습니까?")) return;
+      setIsSubmitting(true);
+      
+      let userId = profile?.id;
+      if (!userId) {
+        const { data: { user } } = await supabase.auth.getUser();
+        userId = user?.id;
+      }
+      
+      if (!userId) return;
+
+      const { error } = await supabase
+        .from("profiles")
+        .update({ avatar_url: null })
+        .eq("id", userId);
+
+      if (error) throw error;
+      
+      setFormData(prev => ({ ...prev, avatar_url: "" }));
+      alert("사진이 삭제되었습니다.");
     } catch (error: any) {
-      alert("수정 중 오류가 발생했습니다: " + error.message);
+      alert("삭제 중 오류가 발생했습니다: " + error.message);
     } finally {
       setIsSubmitting(false);
     }
@@ -142,13 +214,27 @@ export default function ProfilePage() {
         <div className="flex flex-col items-center gap-4">
           <div className="relative group">
             <div className="w-24 h-24 rounded-full bg-zinc-50 border border-zinc-100 flex items-center justify-center overflow-hidden">
-               <span className="text-2xl font-light text-zinc-300 uppercase">{formData.nickname?.[0] || formData.name?.[0] || "?"}</span>
+               {formData.avatar_url ? (
+                 <img src={formData.avatar_url} alt="Profile" className="w-full h-full object-cover" />
+               ) : (
+                 <span className="text-2xl font-light text-zinc-300 uppercase">{formData.nickname?.[0] || formData.name?.[0] || "?"}</span>
+               )}
             </div>
             <button className="absolute bottom-0 right-0 w-8 h-8 bg-black text-white rounded-full flex items-center justify-center shadow-lg hover:scale-110 transition-transform">
               <Camera size={14} />
             </button>
           </div>
-          <p className="text-[10px] text-zinc-400 uppercase tracking-widest">프로필 사진 변경</p>
+          <div className="flex items-center gap-3">
+            <p className="text-[10px] text-zinc-400 uppercase tracking-widest">프로필 사진 변경</p>
+            {formData.avatar_url && (
+              <button 
+                onClick={handleRemovePhoto}
+                className="text-[10px] text-red-400 uppercase tracking-widest font-bold border-l border-zinc-100 pl-3 hover:text-red-600 transition-colors"
+              >
+                삭제
+              </button>
+            )}
+          </div>
         </div>
 
         {/* Form Fields */}

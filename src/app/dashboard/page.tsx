@@ -100,46 +100,6 @@ export default function DashboardPage() {
           // 일치하는 이메일이 없을 경우 아무 정보나 하나 가져옵니다.
           const { data: anyProfile } = await supabase
             .from("profiles")
-            .select("id")
-            .limit(1)
-            .single();
-          if (anyProfile) {
-            user = { id: anyProfile.id, email: "master@dev.local" };
-          }
-        }
-      }
-
-      if (!user) {
-        router.push("/");
-        return;
-      }
-
-      // Fetch profile and initial family data
-      const { data: profileData, error: profileError } = await supabase
-        .from("profiles")
-        .select("*, families(*)")
-        .eq("id", user.id)
-        .single();
-      
-      if (profileError) throw profileError;
-
-      setProfile(profileData);
-      setProfileDraft({ nickname: profileData?.nickname || '', phone: profileData?.phone || '' });
-      setFamilyDraftName(profileData?.families?.name || '');
-
-      // If family exists, fetch leader info manually to avoid join errors
-      if (profileData && profileData.families) {
-        const { data: leaderData } = await supabase
-          .from("profiles")
-          .select("name, nickname")
-          .eq("id", profileData.families.created_by)
-          .single();
-        
-        if (leaderData) {
-          profileData.families.leader = leaderData;
-        }
-      }
-
       setProfile(profileData);
       setProfileDraft({ nickname: profileData?.nickname || '', phone: profileData?.phone || '' });
       setFamilyDraftName(profileData?.families?.name || '');
@@ -612,8 +572,31 @@ export default function DashboardPage() {
   const handleUpdateProfile = async () => {
     try {
       setIsSubmitting(true);
-      const { data: { user } } = await supabase.auth.getUser();
+      const isMasterMode = localStorage.getItem("zipsa_master_mode") === "true";
+      let user: any = null;
+      const { data: authData } = await supabase.auth.getUser();
+      user = authData?.user;
+
+      if (!user && isMasterMode) {
+        const { data: targetProfile } = await supabase
+          .from("profiles")
+          .select("id")
+          .eq("email", "kimmia7110@gmail.com")
+          .maybeSingle();
+        
+        if (targetProfile) {
+          user = { id: targetProfile.id };
+        } else {
+          const { data: anyProfile } = await supabase.from("profiles").select("id").limit(1).single();
+          if (anyProfile) user = { id: anyProfile.id };
+        }
+      }
+
       if (!user) return;
+      if (!profileDraft.nickname.trim()) {
+        alert("닉네임을 입력해주세요. 데이터 유실 방지를 위해 저장이 중단되었습니다.");
+        return;
+      }
 
       const { error } = await supabase
         .from("profiles")
@@ -640,6 +623,17 @@ export default function DashboardPage() {
     
     setIsSubmitting(true);
     try {
+      const isMasterMode = localStorage.getItem("zipsa_master_mode") === "true";
+      let user: any = null;
+      const { data: authData } = await supabase.auth.getUser();
+      user = authData?.user;
+
+      if (!user && isMasterMode) {
+        // Just verify we have a user identity to perform the update
+        user = { id: profile.id }; 
+      }
+
+      if (!user) return;
       const { error } = await supabase
         .from('families')
         .update({ name: familyDraftName.trim() })

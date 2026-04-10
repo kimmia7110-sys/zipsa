@@ -29,12 +29,18 @@ export default function CreateFamilyPage() {
       user = authData?.user;
 
       if (!user && isMasterMode) {
-        const { data: anyProfile } = await supabase
+        const { data: targetProfile } = await supabase
           .from("profiles")
           .select("id")
-          .limit(1)
-          .single();
-        if (anyProfile) user = { id: anyProfile.id };
+          .eq("email", "kimmia7110@gmail.com")
+          .maybeSingle();
+        
+        if (targetProfile) {
+          user = { id: targetProfile.id };
+        } else {
+          const { data: anyProfile } = await supabase.from("profiles").select("id").limit(1).single();
+          if (anyProfile) user = { id: anyProfile.id };
+        }
       }
 
       if (!user) throw new Error("로그인이 필요합니다.");
@@ -83,12 +89,18 @@ export default function CreateFamilyPage() {
       user = authData?.user;
 
       if (!user && isMasterMode) {
-        const { data: anyProfile } = await supabase
+        const { data: targetProfile } = await supabase
           .from("profiles")
           .select("id")
-          .limit(1)
-          .single();
-        if (anyProfile) user = { id: anyProfile.id };
+          .eq("email", "kimmia7110@gmail.com")
+          .maybeSingle();
+        
+        if (targetProfile) {
+          user = { id: targetProfile.id };
+        } else {
+          const { data: anyProfile } = await supabase.from("profiles").select("id").limit(1).single();
+          if (anyProfile) user = { id: anyProfile.id };
+        }
       }
 
       if (!user) throw new Error("로그인이 필요합니다.");
