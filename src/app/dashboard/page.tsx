@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, useMemo } from "react";
 import { supabase } from "@/lib/supabase";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
@@ -77,10 +77,146 @@ export default function DashboardPage() {
   const [tamagotchiNameDraft, setTamagotchiNameDraft] = useState("");
   const [historyViewMode, setHistoryViewMode] = useState<'day' | 'week' | 'month'>('month');
   const [historySelectedDate, setHistorySelectedDate] = useState(new Date());
+  
+  // Notification States
+  const [notificationCount, setNotificationCount] = useState(0);
+  const [recentNotifications, setRecentNotifications] = useState<any[]>([]);
+  const [isNotificationOpen, setIsNotificationOpen] = useState(false);
+  
+  // Mailbox States
+  const [isMailboxOpen, setIsMailboxOpen] = useState(false);
+  const [selectedLetter, setSelectedLetter] = useState<any>(null);
+  const [readLetters, setReadLetters] = useState<string[]>([]);
+
+  const mailboxLetters = useMemo(() => {
+    if (!profile || pets.length === 0) return [];
+    
+    const ownerName = profile.nickname || profile.name || '집사님';
+    const letters: any[] = [];
+    const today = new Date();
+    
+    pets.forEach(pet => {
+      const petCreatedDate = new Date(pet.created_at || Date.now());
+      const isAnniversary = petCreatedDate.getMonth() === today.getMonth() && petCreatedDate.getDate() === today.getDate() && petCreatedDate.getFullYear() !== today.getFullYear();
+      
+      // 1. 처음 만난 날 (Every pet has this as default welcome)
+      letters.push({
+        id: `welcome-${pet.id}`,
+        petId: pet.id,
+        petName: pet.name,
+        petPhoto: pet.photo_url || null,
+        title: '안녕! 나야 나! 💌',
+        content: `${ownerName}! 나랑 우리 집에 처음 온 날 기억나? 그때 완전 콩닥콩닥 떨렸는데, 지금은 ${ownerName} 없이는 하루도 못 살 것 같아구려! 헤헤. 앞으로도 맨날맨날 나랑 놀아줘야 해. 알았지? 🐾\n\n- ${ownerName}의 껌딱지 ${pet.name} (이)가`,
+        date: petCreatedDate.toISOString(),
+        isSpecial: false
+      });
+      
+      // 2. Anniversary letter
+      if (isAnniversary) {
+        letters.push({
+          id: `anniv-${pet.id}-${today.getFullYear()}`,
+          petId: pet.id,
+          petName: pet.name,
+          petPhoto: pet.photo_url || null,
+          title: '우리 벌써 1년이야! 🎂',
+          content: `대박! 벌써 시간이 이렇게 됐다구? ${ownerName}랑 같이 밥 먹고 뒹굴거린 지 벌써 1년이나 지났네. 요즘 매일매일이 소풍 온 것 같이 재밌어! 앞으로도 간식 많이 주고 내 옆에 꼭 붙어있어라! 사랑해 와앙! ❤️\n\n- ${ownerName}만 파는 ${pet.name} (이)가`,
+          date: new Date().toISOString(),
+          isSpecial: true
+        });
+      }
+      
+      // 3. Heart > 100 
+      const family = typeof profile.families === 'object' ? profile.families : undefined;
+      const heartPoints = family?.heart_points || 0;
+      if (heartPoints >= 100) {
+        letters.push({
+          id: `heart100-${pet.id}`,
+          petId: pet.id,
+          petName: pet.name,
+          petPhoto: pet.photo_url || null,
+          title: '내 마음이 느껴져? 💕',
+          content: `요즘 ${ownerName}가 나 엄청 챙겨주는 거 다 알고 있다구. 밥도 주고 놀아줘서 내 마음속 하트가 100% 꽉 찼어! 빵빵해! ${ownerName} 냄새 맡으면서 잘 때가 제일 좋아. 진짜 진짜 고마워!\n\n- 사랑 듬뿍 받은 ${pet.name}`,
+          date: new Date(Date.now() - 1000*60*60*24).toISOString(),
+          isSpecial: true
+        });
+      }
+
+      // 4. 특별 샘플 편지 (항상 보임)
+      letters.push({
+        id: `sample-${pet.id}`,
+        petId: pet.id,
+        petName: pet.name,
+        petPhoto: pet.photo_url || null,
+        title: '깜짝 편지야! 🌼',
+        content: `짜잔! 깜짝 놀랐어? 오늘 하루도 나 먹여살리느라 완전 고생 많았어!\n${ownerName}가 날 쓰다듬어 주면 구름 위를 통통 걷는 기분이야. 오늘 밤엔 내 옆에서 코오 자자~ 내가 나쁜 꿈 다 쫓아내 줄게! 🌙✨\n\n- ${ownerName} 껌딱지 ${pet.name}`,
+        date: new Date().toISOString(),
+        isSpecial: true
+      });
+
+    });
+    
+    return letters.sort((a,b) => new Date(b.date).getTime() - new Date(a.date).getTime());
+  }, [profile, pets]);
 
   useEffect(() => {
     fetchData();
+    fetchNotifications();
+    
+    if (typeof window !== 'undefined') {
+      try {
+        const stored = localStorage.getItem('zipsa_read_letters');
+        if (stored) setReadLetters(JSON.parse(stored));
+      } catch(e) {}
+    }
   }, []);
+
+  const handleReadLetter = (letter: any) => {
+    setSelectedLetter(letter);
+    if (!readLetters.includes(letter.id)) {
+      const newRead = [...readLetters, letter.id];
+      setReadLetters(newRead);
+      if (typeof window !== 'undefined') {
+        localStorage.setItem('zipsa_read_letters', JSON.stringify(newRead));
+      }
+    }
+  };
+
+  const fetchNotifications = async () => {
+    try {
+      const { data: authData } = await supabase.auth.getUser();
+      const user = authData?.user;
+      if (!user) return;
+      
+      const { data: prof } = await supabase.from("profiles").select("id, family_id").eq("id", user.id).single();
+      if (!prof || !prof.family_id) return;
+
+      let lastCheck = localStorage.getItem('zipsa_last_notification_check');
+      if (!lastCheck) {
+          lastCheck = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString();
+          localStorage.setItem('zipsa_last_notification_check', lastCheck);
+      }
+
+      const { data: petData } = await supabase.from('pets').select('id').eq('family_id', prof.family_id);
+      if (!petData || petData.length === 0) return;
+      const petIds = petData.map(p => p.id);
+
+      const { data, error } = await supabase
+          .from('activities')
+          .select('id, type, details, timestamp, pets(name), profiles(nickname)')
+          .in('pet_id', petIds)
+          .neq('user_id', prof.id)
+          .gt('timestamp', lastCheck)
+          .order('timestamp', { ascending: false })
+          .limit(10);
+          
+      if (!error && data) {
+          setRecentNotifications(data);
+          setNotificationCount(data.length);
+      }
+    } catch (e) {
+      console.error(e);
+    }
+  };
 
   useEffect(() => {
     if (selectedPetId) {
@@ -219,6 +355,7 @@ export default function DashboardPage() {
         table: 'activities' 
       }, () => {
         fetchData();
+        fetchNotifications();
       })
       .on('postgres_changes', {
         event: '*',
@@ -1115,13 +1252,131 @@ export default function DashboardPage() {
         <Link href="/dashboard" className="text-xl font-light tracking-tighter">집착</Link>
         <div className="flex items-center gap-6 relative">
           <div className="flex items-center gap-4 pr-4 border-r border-zinc-100">
-            <button className="text-zinc-200 hover:text-black transition-colors relative">
-              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"><path d="M6 8a6 6 0 0 1 12 0c0 7 3 9 3 9H3s3-2 3-9"/><path d="M10.3 21a1.94 1.94 0 0 0 3.4 0"/></svg>
-              <span className="absolute -top-0.5 -right-0.5 w-1 h-1 bg-red-500 rounded-full"></span>
-            </button>
-            <button className="text-zinc-200 hover:text-black transition-colors">
-              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"><rect width="20" height="16" x="2" y="4" rx="2"/><path d="m22 7-8.97 5.7a1.94 1.94 0 0 1-2.06 0L2 7"/></svg>
-            </button>
+            <div className="relative">
+              <button 
+                onClick={() => { 
+                  setIsNotificationOpen(!isNotificationOpen); 
+                  if (!isNotificationOpen) {
+                    setNotificationCount(0);
+                    localStorage.setItem('zipsa_last_notification_check', new Date().toISOString());
+                  }
+                }} 
+                className="text-zinc-200 hover:text-black transition-colors relative flex items-center justify-center p-1"
+              >
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"><path d="M6 8a6 6 0 0 1 12 0c0 7 3 9 3 9H3s3-2 3-9"/><path d="M10.3 21a1.94 1.94 0 0 0 3.4 0"/></svg>
+                {notificationCount > 0 && (
+                  <span className="absolute 0 -right-1 w-3.5 h-3.5 bg-red-500 rounded-full flex items-center justify-center text-[8px] font-bold text-white shadow-sm ring-[1.5px] ring-white">
+                    {notificationCount > 9 ? '9+' : notificationCount}
+                  </span>
+                )}
+              </button>
+              
+              <AnimatePresence>
+                {isNotificationOpen && (
+                  <>
+                    <div className="fixed inset-0 z-[60]" onClick={() => setIsNotificationOpen(false)} />
+                    <motion.div initial={{ opacity: 0, y: 5, scale: 0.98 }} animate={{ opacity: 1, y: 0, scale: 1 }} exit={{ opacity: 0, y: 5, scale: 0.98 }} className="absolute top-full right-0 mt-3 w-[260px] bg-white z-[70] shadow-[0_20px_50px_rgba(0,0,0,0.12)] rounded-3xl border border-zinc-100 overflow-hidden">
+                      <div className="px-4 py-3 border-b border-zinc-50 flex justify-between items-center">
+                        <p className="text-[10px] font-bold tracking-widest uppercase text-zinc-900 border-l border-black pl-2">새로운 기록 알림</p>
+                      </div>
+                      <div className="max-h-[300px] overflow-y-auto custom-scrollbar p-2">
+                        {recentNotifications.length > 0 ? (
+                          recentNotifications.map(n => (
+                            <div key={n.id} className="p-3 hover:bg-zinc-50/80 rounded-2xl transition-colors space-y-1.5 flex gap-3 items-start group">
+                              <div className="w-8 h-8 rounded-full bg-zinc-50 border border-zinc-100 flex items-center justify-center shrink-0">
+                                <span className="text-[10px] font-bold">{n.profiles?.nickname?.[0] || '가'}</span>
+                              </div>
+                              <div className="space-y-0.5">
+                                <p className="text-[11px] text-zinc-800 leading-tight">
+                                  <span className="font-bold">{n.profiles?.nickname || '가족'}</span>님이 <span className="font-bold">{n.pets?.name}</span>의 <span className="text-black font-semibold bg-zinc-100 px-1 rounded">{n.type}</span> 기록을 남겼습니다.
+                                </p>
+                                <p className="text-[9px] text-zinc-400 font-mono pt-1 group-hover:text-black transition-colors">{new Date(n.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</p>
+                              </div>
+                            </div>
+                          ))
+                        ) : (
+                          <div className="py-10 text-center flex flex-col items-center gap-2">
+                            <span className="text-2xl opacity-20">📭</span>
+                            <p className="text-[10px] text-zinc-400 font-semibold uppercase tracking-widest">새로운 알림이 없습니다</p>
+                          </div>
+                        )}
+                      </div>
+                    </motion.div>
+                  </>
+                )}
+              </AnimatePresence>
+            </div>
+            <div className="relative">
+              <button onClick={() => setIsMailboxOpen(!isMailboxOpen)} className="text-zinc-200 hover:text-black transition-colors flex items-center justify-center p-1 relative">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"><rect width="20" height="16" x="2" y="4" rx="2"/><path d="m22 7-8.97 5.7a1.94 1.94 0 0 1-2.06 0L2 7"/></svg>
+                {(() => {
+                  const unreadCount = mailboxLetters.filter(l => !readLetters.includes(l.id)).length;
+                  if (unreadCount > 0) {
+                    return (
+                      <span className="absolute 0 -right-1 w-3.5 h-3.5 bg-[#1A1A1A] rounded-full flex items-center justify-center text-[8px] font-bold text-white shadow-sm ring-[1.5px] ring-white">
+                        {unreadCount}
+                      </span>
+                    );
+                  }
+                  return null;
+                })()}
+              </button>
+
+              <AnimatePresence>
+                {isMailboxOpen && (
+                  <>
+                    <div className="fixed inset-0 z-[60]" onClick={() => { setIsMailboxOpen(false); setSelectedLetter(null); }} />
+                    <motion.div initial={{ opacity: 0, y: 5, scale: 0.98 }} animate={{ opacity: 1, y: 0, scale: 1 }} exit={{ opacity: 0, y: 5, scale: 0.98 }} className="absolute top-full right-0 mt-3 w-[280px] sm:w-[320px] bg-[#fffcf5] z-[70] shadow-[0_20px_50px_rgba(0,0,0,0.12)] rounded-3xl border border-[#efe9dc] overflow-hidden">
+                      {selectedLetter ? (
+                        <div className="p-5 relative min-h-[300px] flex flex-col items-center text-center">
+                          <button onClick={() => setSelectedLetter(null)} className="absolute top-4 left-4 p-1 text-zinc-400 hover:text-black">
+                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M15 18l-6-6 6-6"/></svg>
+                          </button>
+                          <div className="w-12 h-12 rounded-full overflow-hidden bg-white border-2 border-[#efe9dc] mb-4 mt-2 flex items-center justify-center shrink-0 shadow-sm">
+                            {selectedLetter.petPhoto ? <img src={selectedLetter.petPhoto} className="w-full h-full object-cover" alt="" /> : <span className="text-xl">🐾</span>}
+                          </div>
+                          <h4 className="text-sm font-bold text-[#3d3730] mb-6">{selectedLetter.title}</h4>
+                          <p className="text-[11px] text-[#5c544a] leading-[1.8] whitespace-pre-wrap font-medium">{selectedLetter.content}</p>
+                          <p className="text-[9px] text-zinc-400 font-mono mt-8 mb-2 absolute bottom-2">{new Date(selectedLetter.date).toLocaleDateString()}</p>
+                        </div>
+                      ) : (
+                        <>
+                          <div className="px-5 py-4 border-b border-[#efe9dc] flex justify-between items-center bg-[#fdfaf3]">
+                            <p className="text-[11px] font-bold tracking-widest uppercase text-[#5c544a] flex items-center gap-2"><span className="text-lg">💌</span> 우리 아이들의 편지함</p>
+                          </div>
+                          <div className="max-h-[350px] overflow-y-auto custom-scrollbar p-2">
+                            {mailboxLetters.length > 0 ? (
+                              mailboxLetters.map(letter => (
+                                <button key={letter.id} onClick={() => handleReadLetter(letter)} className="w-full p-4 hover:bg-[#f6ebd8]/50 rounded-2xl transition-colors space-y-2 flex gap-4 items-center group text-left">
+                                  <div className="w-10 h-10 rounded-full overflow-hidden bg-white border border-[#efe9dc] flex items-center justify-center shrink-0 shadow-sm group-hover:scale-105 transition-transform">
+                                    {letter.petPhoto ? <img src={letter.petPhoto} className="w-full h-full object-cover" alt="" /> : <span className="text-sm">🐾</span>}
+                                  </div>
+                                  <div className="space-y-1 flex-1 min-w-0">
+                                    <div className="flex justify-between items-center pr-1">
+                                      <span className="text-[10px] font-bold text-[#8c7e6d]">{letter.petName}</span>
+                                      <span className="text-[8px] text-[#b3a89e] font-mono">{new Date(letter.date).toLocaleDateString()}</span>
+                                    </div>
+                                    <p className={`text-[12px] truncate pr-2 ${!readLetters.includes(letter.id) ? 'text-[#3d3730] font-bold' : 'text-[#8c7e6d] font-normal'}`}>
+                                      {!readLetters.includes(letter.id) && <span className="inline-block w-1.5 h-1.5 bg-red-400 rounded-full mr-1.5 mb-[1px]"></span>}
+                                      {letter.title}
+                                    </p>
+                                  </div>
+                                </button>
+                              ))
+                            ) : (
+                              <div className="py-12 text-center flex flex-col items-center gap-3">
+                                <span className="text-3xl opacity-20 filter grayscale">📮</span>
+                                <p className="text-[10px] text-zinc-400 font-semibold uppercase tracking-widest">아직 도착한 편지가 없어요</p>
+                              </div>
+                            )}
+                          </div>
+                        </>
+                      )}
+                    </motion.div>
+                  </>
+                )}
+              </AnimatePresence>
+            </div>
           </div>
           {profile?.role === 'admin' && (
             <Link href="/dashboard/admin" className="text-[10px] tracking-widest text-zinc-400 uppercase hover:text-black transition-colors">
@@ -1398,11 +1653,11 @@ export default function DashboardPage() {
           const meds = Array.isArray(selectedPet.medications) ? selectedPet.medications : [];
           return (
             <section className="space-y-6">
-              <div className="flex justify-between items-end"><h3 className="text-xs tracking-widest text-zinc-900 uppercase font-semibold">💊 {selectedPet.name}의 복용 약</h3><Link href={`/dashboard/edit-pet/${selectedPet.id}`} className="text-[9px] text-zinc-400 hover:text-black transition-colors underline underline-offset-4">수정/관리하기</Link></div>
+              <div className="flex justify-between items-end"><h3 className="text-xs tracking-widest text-zinc-900 uppercase font-semibold">💊 {selectedPet.name}의 복용 중인 약</h3><Link href={`/dashboard/edit-pet/${selectedPet.id}`} className="text-[9px] text-zinc-400 hover:text-black transition-colors underline underline-offset-4">수정/관리하기</Link></div>
               {meds.length > 0 ? (
                 <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3"> {meds.map((med: any) => (
                     <div key={med.id} className="bg-zinc-50/50 p-4 rounded-xl border border-zinc-100/50 flex items-center gap-3"><div className="w-8 h-8 bg-white rounded-lg flex items-center justify-center text-xs border border-zinc-100 shadow-sm">💊</div><div className="space-y-0.5"><p className="text-[11px] font-semibold text-zinc-900">{med.name}</p><p className="text-[9px] text-zinc-400 font-medium uppercase">{med.frequency}</p></div></div> ))} </div>
-              ) : ( <div className="bg-zinc-50/30 p-6 rounded-xl border border-dashed border-zinc-100 flex flex-center justify-center"><p className="text-[10px] text-zinc-300 uppercase tracking-widest">등록된 복용 약이 없습니다</p></div> )}
+              ) : ( <div className="bg-zinc-50/30 p-6 rounded-xl border border-dashed border-zinc-100 flex flex-center justify-center"><p className="text-[10px] text-zinc-300 uppercase tracking-widest">등록된 복용 중인 약이 없습니다</p></div> )}
             </section>
           );
         })()}
