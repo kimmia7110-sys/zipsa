@@ -1279,7 +1279,7 @@ export default function DashboardPage() {
                 {isNotificationOpen && (
                   <>
                     <div className="fixed inset-0 z-[60]" onClick={() => setIsNotificationOpen(false)} />
-                    <motion.div initial={{ opacity: 0, y: 5, scale: 0.98 }} animate={{ opacity: 1, y: 0, scale: 1 }} exit={{ opacity: 0, y: 5, scale: 0.98 }} className="absolute top-full right-0 mt-3 w-[260px] bg-white z-[70] shadow-[0_20px_50px_rgba(0,0,0,0.12)] rounded-3xl border border-zinc-100 overflow-hidden">
+                    <motion.div initial={{ opacity: 0, y: 5, scale: 0.98 }} animate={{ opacity: 1, y: 0, scale: 1 }} exit={{ opacity: 0, y: 5, scale: 0.98 }} className="fixed top-24 left-1/2 -translate-x-1/2 sm:absolute sm:top-full sm:right-0 sm:left-auto sm:translate-x-0 sm:mt-3 w-[340px] sm:w-[260px] bg-white z-[70] shadow-[0_20px_50px_rgba(0,0,0,0.12)] rounded-3xl border border-zinc-100 overflow-hidden">
                       <div className="px-4 py-3 border-b border-zinc-50 flex justify-between items-center">
                         <p className="text-[10px] font-bold tracking-widest uppercase text-zinc-900 border-l border-black pl-2">새로운 기록 알림</p>
                       </div>
@@ -1330,7 +1330,7 @@ export default function DashboardPage() {
                 {isMailboxOpen && (
                   <>
                     <div className="fixed inset-0 z-[60]" onClick={() => { setIsMailboxOpen(false); setSelectedLetter(null); }} />
-                    <motion.div initial={{ opacity: 0, y: 5, scale: 0.98 }} animate={{ opacity: 1, y: 0, scale: 1 }} exit={{ opacity: 0, y: 5, scale: 0.98 }} className="absolute top-full right-0 mt-3 w-[280px] sm:w-[320px] bg-[#fffcf5] z-[70] shadow-[0_20px_50px_rgba(0,0,0,0.12)] rounded-3xl border border-[#efe9dc] overflow-hidden">
+                    <motion.div initial={{ opacity: 0, y: 5, scale: 0.98 }} animate={{ opacity: 1, y: 0, scale: 1 }} exit={{ opacity: 0, y: 5, scale: 0.98 }} className="fixed top-24 left-1/2 -translate-x-1/2 sm:absolute sm:top-full sm:right-0 sm:left-auto sm:translate-x-0 sm:mt-3 w-[340px] sm:w-[320px] bg-[#fffcf5] z-[70] shadow-[0_20px_50px_rgba(0,0,0,0.12)] rounded-3xl border border-[#efe9dc] overflow-hidden">
                       {selectedLetter ? (
                         <div className="p-5 relative min-h-[300px] flex flex-col items-center text-center">
                           <button onClick={() => setSelectedLetter(null)} className="absolute top-4 left-4 p-1 text-zinc-400 hover:text-black">
@@ -1628,7 +1628,7 @@ export default function DashboardPage() {
                 </div>
                 <div className="space-y-1 px-1">
                   <p className="text-sm font-bold text-zinc-900 truncate">{pet.name}</p>
-                  <div className="flex justify-between items-center"><p className="text-[10px] text-zinc-400 uppercase tracking-tight truncate w-3/4">{pet.species}</p><Link href={`/dashboard/edit-pet/${pet.id}`} onClick={(e) => e.stopPropagation()} className="text-[10px] text-zinc-300 hover:text-black font-medium">수정</Link></div>
+                  <div className="flex justify-between items-center"><p className="text-[10px] text-zinc-400 uppercase tracking-tight truncate flex-1 pr-2 min-w-0">{pet.species}</p><Link href={`/dashboard/edit-pet/${pet.id}`} onClick={(e) => e.stopPropagation()} className="text-[10px] text-zinc-300 hover:text-black font-medium shrink-0">수정</Link></div>
                 </div>
               </div> ))}
             <Link href="/dashboard/add-pet" className="group shrink-0 w-[180px] snap-start aspect-square border-[1.5px] border-dashed border-zinc-100 rounded-3xl flex flex-col items-center justify-center gap-3 hover:border-black transition-all bg-zinc-50/30">
