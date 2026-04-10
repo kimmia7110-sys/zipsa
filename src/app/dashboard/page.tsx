@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState, useMemo } from "react";
+import { useEffect, useState, useMemo, useCallback, useRef } from "react";
 import { supabase } from "@/lib/supabase";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
@@ -62,6 +62,11 @@ export default function DashboardPage() {
     duration: '',
     mood: ''
   });
+  const selectedPetIdRef = useRef<string | null>(null);
+
+  useEffect(() => {
+    selectedPetIdRef.current = selectedPetId;
+  }, [selectedPetId]);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [eggVibrate, setEggVibrate] = useState(0);
   const [editingActivity, setEditingActivity] = useState<Activity | null>(null);
@@ -336,7 +341,7 @@ export default function DashboardPage() {
     }
   }, [selectedPetId]);
 
-  const fetchActivities = async () => {
+  const fetchActivities = useCallback(async () => {
     if (!selectedPetId) return;
     try {
       const { data, error } = await supabase
@@ -347,13 +352,17 @@ export default function DashboardPage() {
         .limit(500);
 
       if (error) throw error;
-      setActivities((data as unknown as Activity[]) || []);
+      const newData = (data as unknown as Activity[]) || [];
+      setActivities(prev => {
+        if (JSON.stringify(prev) === JSON.stringify(newData)) return prev;
+        return newData;
+      });
     } catch (error: any) {
       console.error("Error fetching activities:", error.message);
     }
-  };
+  }, [selectedPetId]);
 
-  const fetchData = async (isBackground = false) => {
+  const fetchData = useCallback(async (isBackground = false) => {
     try {
       if (!isBackground) setLoading(true);
       const { data: authData } = await supabase.auth.getUser();
@@ -377,7 +386,10 @@ export default function DashboardPage() {
       }
 
       if (profileData) {
-        setProfile(profileData);
+        setProfile(prev => {
+          if (JSON.stringify(prev) === JSON.stringify(profileData)) return prev;
+          return profileData;
+        });
         setProfileDraft({ nickname: profileData?.nickname || '', phone: profileData?.phone || '' });
         setFamilyDraftName(profileData?.families?.name || '');
         setTamagotchiNameDraft(profileData?.families?.tamagotchi_name || '');
@@ -401,10 +413,16 @@ export default function DashboardPage() {
             const { data: petsData, error: petsError } = await supabase
               .from("pets")
               .select("*")
-              .eq("family_id", profileData.family_id);
+              .eq("family_id", profileData.family_id)
+              .order("created_at"); // Add order for deterministic IDs
 
             if (petsError) {
               console.error("Dashboard Pets Fetch Error:", petsError.message);
+            } else if (petsData) {
+              setPets(prev => {
+                if (JSON.stringify(prev) === JSON.stringify(petsData)) return prev;
+                return petsData;
+              });
             }
 
             // Fetch activities
@@ -414,8 +432,9 @@ export default function DashboardPage() {
               .order("timestamp", { ascending: false })
               .limit(500);
 
-            if (selectedPetId) {
-              activityQuery = activityQuery.eq("pet_id", selectedPetId);
+            const activeId = selectedPetIdRef.current;
+            if (activeId) {
+              activityQuery = activityQuery.eq("pet_id", activeId);
             }
 
             const { data: activityData, error: activityError } = await activityQuery;
@@ -423,7 +442,11 @@ export default function DashboardPage() {
             if (activityError) {
               console.error("Dashboard Activity Fetch Error:", JSON.stringify(activityError, null, 2));
             } else {
-              setActivities((activityData as unknown as Activity[]) || []);
+              const acts = (activityData as unknown as Activity[]) || [];
+              setActivities(prev => {
+                if (JSON.stringify(prev) === JSON.stringify(acts)) return prev;
+                return acts;
+              });
             }
 
             // Fetch family members
@@ -435,7 +458,10 @@ export default function DashboardPage() {
             if (membersError) {
               console.error("Dashboard Members Fetch Error:", membersError.message);
             } else if (membersData) {
-              setFamilyMembers(membersData);
+              setFamilyMembers(prev => {
+                if (JSON.stringify(prev) === JSON.stringify(membersData)) return prev;
+                return membersData;
+              });
             }
           } catch (internalError: any) {
             console.error("Dashboard Internal Data Fetch Crash:", JSON.stringify(internalError, null, 2));
@@ -447,7 +473,7 @@ export default function DashboardPage() {
     } finally {
       if (!isBackground) setLoading(false);
     }
-  };
+  }, [router]);
 
   const [isEditingHealth, setIsEditingHealth] = useState(false);
   const [healthDraft, setHealthDraft] = useState<any[]>([]);
@@ -483,7 +509,7 @@ export default function DashboardPage() {
     return () => {
       supabase.removeChannel(subscription);
     };
-  }, [selectedPetId]);
+  }, [fetchData]);
 
   const handleUpdateHealth = async () => {
     if (!selectedPetId) return;
@@ -1665,7 +1691,7 @@ export default function DashboardPage() {
           const today = new Date().toISOString().split('T')[0];
           const activitiesToday = activities.filter(a => a.timestamp.startsWith(today));
           return (
-            <motion.section initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} className="space-y-12">
+            <motion.section initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} className="space-y-12 pb-10">
               <div className="space-y-3">
                 <span className="text-[10pt] tracking-[0.3em] text-[#888888] uppercase font-pixel">포켓룸</span>
                 <div className="relative aspect-video sm:aspect-[21/9] bg-white border-[1px] border-zinc-900 rounded-2xl overflow-hidden flex items-center justify-center group shadow-2xl shadow-zinc-100">
