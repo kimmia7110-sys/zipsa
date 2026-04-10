@@ -32,14 +32,6 @@ export default function LandingPage() {
     e.preventDefault();
     setLoading(true);
     try {
-      // [임시 마스터 로그인] 완전 무적 모드!
-      if (email === "kimmia7110@gmail.com" && password === "choisi7110") {
-        localStorage.setItem("zipsa_master_mode", "true");
-        alert("마스터 계정으로 임시 로그인합니다. (개발 전용)");
-        window.location.href = "/dashboard";
-        return;
-      }
-
       const { error } = await supabase.auth.signInWithPassword({
         email,
         password,
