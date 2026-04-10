@@ -4,7 +4,8 @@ import { useEffect, useState } from "react";
 import { supabase } from "@/lib/supabase";
 import { useRouter } from "next/navigation";
 import { motion } from "framer-motion";
-import { ArrowLeft, Camera, Check } from "lucide-react";
+import { ArrowLeft, Camera, Check, Trash2 } from "lucide-react";
+import { useRef } from "react";
 
 export default function ProfilePage() {
   const router = useRouter();
@@ -152,6 +153,54 @@ export default function ProfilePage() {
     }
   };
   
+  const fileInputRef = useRef<HTMLInputElement>(null);
+
+  const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    try {
+      setIsSubmitting(true);
+      const fileExt = file.name.split('.').pop();
+      const fileName = `${Math.random()}.${fileExt}`;
+      const filePath = `avatars/${fileName}`;
+
+      const { error: uploadError } = await supabase.storage
+        .from('avatars')
+        .upload(filePath, file);
+
+      if (uploadError) {
+        // Fallback to 'profile-photos' if 'avatars' bucket doesn't exist/work
+        const { error: secondError } = await supabase.storage
+          .from('profile-photos')
+          .upload(filePath, file);
+        if (secondError) throw uploadError;
+      }
+
+      const { data: { publicUrl } } = supabase.storage
+        .from('avatars')
+        .getPublicUrl(filePath);
+
+      setFormData(prev => ({ ...prev, avatar_url: publicUrl }));
+      
+      let userId = profile?.id;
+      if (!userId) {
+        const { data: { user } } = await supabase.auth.getUser();
+        userId = user?.id;
+      }
+      
+      if (userId) {
+        await supabase.from("profiles").update({ avatar_url: publicUrl }).eq("id", userId);
+      }
+      
+      alert("프로필 사진이 변경되었습니다.");
+    } catch (error: any) {
+      alert("업로드 중 오류가 발생했습니다: " + error.message);
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
   const handleRemovePhoto = async () => {
     try {
       if (!confirm("프로필 사진을 삭제하시겠습니까?")) return;
@@ -202,7 +251,7 @@ export default function ProfilePage() {
           disabled={isSubmitting}
           className="p-2 -mr-2 text-black hover:opacity-50 transition-all font-bold text-xs uppercase tracking-widest"
         >
-          {isSubmitting ? "Saving..." : "Done"}
+          {isSubmitting ? "저장 중..." : "완료"}
         </button>
       </nav>
 
@@ -217,27 +266,41 @@ export default function ProfilePage() {
                  <span className="text-2xl font-light text-zinc-300 uppercase">{formData.nickname?.[0] || formData.name?.[0] || "?"}</span>
                )}
             </div>
-            <button className="absolute bottom-0 right-0 w-8 h-8 bg-black text-white rounded-full flex items-center justify-center shadow-lg hover:scale-110 transition-transform">
+            <button 
+              onClick={() => fileInputRef.current?.click()}
+              className="absolute bottom-0 right-0 w-8 h-8 bg-black text-white rounded-full flex items-center justify-center shadow-lg hover:scale-110 transition-transform"
+            >
               <Camera size={14} />
             </button>
+            <input 
+              type="file" 
+              ref={fileInputRef} 
+              className="hidden" 
+              accept="image/*" 
+              onChange={handleFileChange} 
+            />
           </div>
-          <div className="flex items-center gap-3">
-            <p className="text-[10px] text-zinc-400 uppercase tracking-widest">프로필 사진 변경</p>
-            {formData.avatar_url && (
-              <button 
-                onClick={handleRemovePhoto}
-                className="text-[10px] text-red-400 uppercase tracking-widest font-bold border-l border-zinc-100 pl-3 hover:text-red-600 transition-colors"
-              >
-                삭제
-              </button>
-            )}
+          <div className="flex items-center gap-4">
+            <button 
+              onClick={() => fileInputRef.current?.click()}
+              className="text-[10px] text-zinc-400 uppercase tracking-widest hover:text-black transition-colors font-bold"
+            >
+              프로필 사진 변경
+            </button>
+            <div className="w-[1px] h-2 bg-zinc-100" />
+            <button 
+              onClick={handleRemovePhoto}
+              className="text-[10px] text-zinc-400 uppercase tracking-widest hover:text-red-500 transition-colors font-bold"
+            >
+              삭제
+            </button>
           </div>
         </div>
 
         {/* Form Fields */}
         <div className="space-y-10">
           <div className="space-y-1.5">
-            <label className="text-[10px] text-zinc-400 uppercase tracking-widest pl-1 font-mono">Real Name</label>
+            <label className="text-[10px] text-zinc-400 uppercase tracking-widest pl-1 font-mono">실명</label>
             <input 
               type="text"
               placeholder="본인의 성함을 입력해주세요"
@@ -248,7 +311,7 @@ export default function ProfilePage() {
           </div>
 
           <div className="space-y-1.5">
-            <label className="text-[10px] text-zinc-400 uppercase tracking-widest pl-1 font-mono">Nickname</label>
+            <label className="text-[10px] text-zinc-400 uppercase tracking-widest pl-1 font-mono">닉네임</label>
             <input 
               type="text"
               placeholder="활동할 닉네임을 입력해주세요"
@@ -259,7 +322,7 @@ export default function ProfilePage() {
           </div>
 
           <div className="space-y-1.5">
-            <label className="text-[10px] text-zinc-400 uppercase tracking-widest pl-1 font-mono">Phone Number</label>
+            <label className="text-[10px] text-zinc-400 uppercase tracking-widest pl-1 font-mono">전화번호</label>
             <input 
               type="text"
               placeholder="010-0000-0000"
@@ -270,7 +333,7 @@ export default function ProfilePage() {
           </div>
 
           <div className="space-y-4">
-            <label className="text-[10px] text-zinc-400 uppercase tracking-widest pl-1 font-mono">Gender</label>
+            <label className="text-[10px] text-zinc-400 uppercase tracking-widest pl-1 font-mono">성별</label>
             <div className="grid grid-cols-2 gap-3">
               {["남성", "여성"].map((g) => (
                 <button
@@ -287,7 +350,7 @@ export default function ProfilePage() {
           </div>
 
           <div className="space-y-1.5">
-            <label className="text-[10px] text-zinc-400 uppercase tracking-widest pl-1 font-mono">Address</label>
+            <label className="text-[10px] text-zinc-400 uppercase tracking-widest pl-1 font-mono">주소</label>
             <input 
               type="text"
               placeholder="주 거주지를 입력해주세요"

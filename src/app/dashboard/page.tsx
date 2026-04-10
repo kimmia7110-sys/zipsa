@@ -73,6 +73,8 @@ export default function DashboardPage() {
   const [profileDraft, setProfileDraft] = useState({ nickname: '', phone: '' });
   const [familyDraftName, setFamilyDraftName] = useState("");
   const [showInlineFamilies, setShowInlineFamilies] = useState(false);
+  const [isEditingTamagotchi, setIsEditingTamagotchi] = useState(false);
+  const [tamagotchiNameDraft, setTamagotchiNameDraft] = useState("");
 
   useEffect(() => {
     fetchData();
@@ -183,6 +185,7 @@ export default function DashboardPage() {
         setProfile(profileData);
         setProfileDraft({ nickname: profileData?.nickname || '', phone: profileData?.phone || '' });
         setFamilyDraftName(profileData?.families?.name || '');
+        setTamagotchiNameDraft(profileData?.families?.tamagotchi_name || '');
 
         // Fetch family leader manually
         if (profileData.families) {
@@ -303,6 +306,33 @@ export default function DashboardPage() {
     } else {
       setPets(pets.map(p => p.id === selectedPetId ? { ...p, medications: healthDraft } : p));
       setIsEditingHealth(false);
+    }
+  };
+
+  const handleUpdateTamagotchiName = async () => {
+    if (!profile?.family_id) return;
+    try {
+      setIsSubmitting(true);
+      const { error } = await supabase
+        .from('families')
+        .update({ tamagotchi_name: tamagotchiNameDraft })
+        .eq('id', profile.family_id);
+
+      if (error) throw error;
+      
+      const updatedProfile = {
+        ...profile,
+        families: {
+          ...profile.families,
+          tamagotchi_name: tamagotchiNameDraft
+        }
+      };
+      setProfile(updatedProfile);
+      setIsEditingTamagotchi(false);
+    } catch (error: any) {
+      alert("이름을 변경하는 중 오류가 발생했습니다: " + error.message);
+    } finally {
+      setIsSubmitting(false);
     }
   };
 
@@ -774,7 +804,7 @@ export default function DashboardPage() {
           {recordStep === 1 ? (
             <div className="space-y-10">
               <div className="space-y-4">
-                <span className="text-[10px] text-zinc-400 uppercase tracking-widest">DRUG SELECTION</span>
+                <span className="text-[10px] text-zinc-400 uppercase tracking-widest">품목 선택</span>
                 <h2 className="text-2xl font-light tracking-tight flex items-center gap-3">
                   <span className="text-3xl">💊</span> {selectedPet?.name || '아이'}가 어떤 약을 먹었나요?
                 </h2>
@@ -833,7 +863,7 @@ export default function DashboardPage() {
           ) : (
             <div className="space-y-10">
               <div className="space-y-4">
-                <span className="text-[10px] text-zinc-400 uppercase tracking-widest">MEMO</span>
+                <span className="text-[10px] text-zinc-400 uppercase tracking-widest">메모</span>
                 <h2 className="text-2xl font-light tracking-tight">추가로 남길 메모가 있나요?</h2>
               </div>
               <input
@@ -983,7 +1013,7 @@ export default function DashboardPage() {
           {recordStep === 1 ? (
             <div className="space-y-10">
               <div className="space-y-4">
-                <span className="text-[10px] text-zinc-400 uppercase tracking-widest">DURATION</span>
+                <span className="text-[10px] text-zinc-400 uppercase tracking-widest">소요 시간</span>
                 <h2 className="text-2xl font-light tracking-tight">
                   {recordingType === '사냥놀이하기' ? '얼마나 놀아주셨나요?' : recordingType === '자유시간주기' ? '자유시간을 얼마나 가졌나요?' : recordingType === '운동시키기' ? '얼마나 운동시켰나요?' : '얼마나 산책했나요?'}
                 </h2>
@@ -1019,7 +1049,7 @@ export default function DashboardPage() {
           ) : recordStep === 2 ? (
             <div className="space-y-10">
               <div className="space-y-4">
-                <span className="text-[10px] text-zinc-400 uppercase tracking-widest">REACTION</span>
+                <span className="text-[10px] text-zinc-400 uppercase tracking-widest">반응</span>
                 <h2 className="text-2xl font-light tracking-tight">{recordingType === '자유시간주기' ? '자유시간을 얼마나 즐겼나요?' : '반응은 어땠나요?'}</h2>
               </div>
               <div className="grid grid-cols-1 gap-3">
@@ -1048,7 +1078,7 @@ export default function DashboardPage() {
           ) : (
             <div className="space-y-10">
               <div className="space-y-4">
-                <span className="text-[10px] text-zinc-400 uppercase tracking-widest">MEMO</span>
+                <span className="text-[10px] text-zinc-400 uppercase tracking-widest">메모</span>
                 <h2 className="text-2xl font-light tracking-tight">구체적으로 어떤 {activityLabel}였나요?</h2>
               </div>
               <input
@@ -1116,7 +1146,7 @@ export default function DashboardPage() {
                   onChange={(e) => setRecordData({ ...recordData, memo: e.target.value })}
                 />
                 <div className="flex gap-3 pt-6">
-                  <button onClick={() => setRecordingType(null)} className="flex-1 py-4 text-xs font-medium border border-zinc-100 rounded-xl hover:bg-zinc-50 transition-colors uppercase tracking-widest text-zinc-400">Cancel</button>
+                  <button onClick={() => setRecordingType(null)} className="flex-1 py-4 text-xs font-medium border border-zinc-100 rounded-xl hover:bg-zinc-50 transition-colors uppercase tracking-widest text-zinc-400">취소</button>
                   <button disabled={!recordData.memo} onClick={() => { if (!recordData.amountUnit || recordData.amountUnit === 'g') setRecordData({ ...recordData, amountUnit: '개' }); setRecordStep(2); }} className="flex-[2] py-5 text-sm font-semibold bg-black text-white rounded-2xl shadow-xl shadow-black/10 active:scale-[0.98] transition-all disabled:bg-zinc-100 disabled:shadow-none">다음으로</button>
                 </div>
               </div>
@@ -1140,7 +1170,7 @@ export default function DashboardPage() {
                   </div>
                 </div>
                 <div className="flex gap-3 pt-6">
-                  <button onClick={() => setRecordStep(1)} className="flex-1 py-4 text-xs font-medium border border-zinc-100 rounded-xl hover:bg-zinc-50 transition-colors uppercase tracking-widest text-zinc-400">Back</button>
+                  <button onClick={() => setRecordStep(1)} className="flex-1 py-4 text-xs font-medium border border-zinc-100 rounded-xl hover:bg-zinc-50 transition-colors uppercase tracking-widest text-zinc-400">이전</button>
                   <button disabled={!recordData.amountValue || isSubmitting} onClick={handleRecordActivity} className="flex-[2] py-5 text-sm font-semibold bg-black text-white rounded-2xl shadow-xl shadow-black/10 active:scale-[0.98] transition-all disabled:bg-zinc-100 disabled:shadow-none">{isSubmitting ? "기록 중..." : "기록 완료"}</button>
                 </div>
               </div>
@@ -1213,11 +1243,11 @@ export default function DashboardPage() {
                           </div>
                           <div className="space-y-3 px-1">
                             <div className="space-y-1">
-                              <label className="text-[8px] text-zinc-400 uppercase tracking-widest pl-1 font-mono">Nickname</label>
+                              <label className="text-[8px] text-zinc-400 uppercase tracking-widest pl-1 font-mono">닉네임</label>
                               <input type="text" className="w-full p-2.5 bg-zinc-50 rounded-xl text-[10px] focus:ring-0 focus:border-black border-transparent transition-all" value={profileDraft.nickname} onChange={(e) => setProfileDraft({ ...profileDraft, nickname: e.target.value })} />
                             </div>
                             <div className="space-y-1">
-                              <label className="text-[8px] text-zinc-400 uppercase tracking-widest pl-1 font-mono">Phone</label>
+                              <label className="text-[8px] text-zinc-400 uppercase tracking-widest pl-1 font-mono">전화번호</label>
                               <input type="text" className="w-full p-2.5 bg-zinc-50 rounded-xl text-[10px] focus:ring-0 focus:border-black border-transparent transition-all" value={profileDraft.phone} onChange={(e) => setProfileDraft({ ...profileDraft, phone: e.target.value })} />
                             </div>
                             <button disabled={isSubmitting} onClick={handleUpdateProfile} className="w-full py-3 bg-black text-white rounded-xl text-[10px] font-bold mt-2 disabled:bg-zinc-200">저장하기</button>
@@ -1227,7 +1257,7 @@ export default function DashboardPage() {
                         <div className="p-1.5 space-y-3 animate-in fade-in slide-in-from-right-1 duration-200">
                           <div className="flex items-center gap-2 mb-1 px-1">
                             <button onClick={() => setActiveMyPageTab('root')} className="p-1 -ml-1 text-zinc-400 hover:text-black"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><path d="M15 18l-6-6 6-6"/></svg></button>
-                            <span className="text-[10px] font-bold uppercase tracking-tight">Family members</span>
+                            <span className="text-[10px] font-bold uppercase tracking-tight">가족 구성원</span>
                           </div>
                           <div className="space-y-2.5">
                             <div className="p-3 bg-zinc-50 rounded-2xl space-y-3">
@@ -1244,7 +1274,7 @@ export default function DashboardPage() {
                                 <span className="text-[7px] text-zinc-400 uppercase tracking-widest font-mono">가족 초대 코드</span>
                                 <div className="flex items-center justify-between px-1">
                                   <p className="text-[11px] font-mono font-black text-zinc-900 tracking-wider font-bold"> {profile?.families?.invite_code} </p>
-                                  <button onClick={() => { navigator.clipboard.writeText(profile?.families?.invite_code || ''); alert("초대 코드가 복사되었습니다."); }} className="text-[8px] text-zinc-400 hover:text-black uppercase tracking-tighter">Copy</button>
+                                  <button onClick={() => { navigator.clipboard.writeText(profile?.families?.invite_code || ''); alert("초대 코드가 복사되었습니다."); }} className="text-[8px] text-zinc-400 hover:text-black uppercase tracking-tighter">복사</button>
                                 </div>
                               </div>
                             </div>
@@ -1253,7 +1283,7 @@ export default function DashboardPage() {
                                 <div key={member.id} className="flex items-center gap-2 p-2 rounded-lg border border-zinc-50 bg-white">
                                   <div className="w-5 h-5 rounded-full bg-zinc-100 flex items-center justify-center text-[7px] font-bold text-zinc-400 overflow-hidden shrink-0"> {member.nickname?.[0] || member.name?.[0] || '?'} </div>
                                   <p className="text-[9px] font-semibold truncate flex-1 flex items-center gap-1"> {member.nickname || member.name || '이름 없음'} 
-                                    {member.id === profile?.families?.created_by && ( <span className="text-[7px] bg-zinc-900 text-white px-1.5 py-0.5 rounded-full font-bold uppercase tracking-tighter scale-90">Leader</span> )}
+                                    {member.id === profile?.families?.created_by && ( <span className="text-[7px] bg-zinc-900 text-white px-1.5 py-0.5 rounded-full font-bold uppercase tracking-tighter scale-90">방장</span> )}
                                     {member.id === profile?.id && <span className="text-[7px] text-zinc-300 font-normal">나</span>}
                                   </p>
                                   {profile?.families?.created_by === profile?.id && member.id !== profile?.id && (
@@ -1279,10 +1309,10 @@ export default function DashboardPage() {
         </div>
       </nav>
 
-      <div className="max-w-[800px] mx-auto px-6 py-12 space-y-20">
+      <div className="max-w-[800px] mx-auto px-6 py-12 space-y-12">
         <section className="space-y-4">
           <div className="flex flex-col gap-1.5">
-            <p className="text-[10px] tracking-[0.2em] text-zinc-400 uppercase">홈</p>
+            <p className="text-[12px] tracking-[0.2em] text-zinc-400 uppercase">홈</p>
             <div className="relative">
               <button onClick={() => { fetchMyFamilies(); setShowInlineFamilies(!showInlineFamilies); }} className="flex items-center gap-1.5 group">
                 <h1 className="text-2xl font-bold tracking-tight text-zinc-900 flex items-center gap-1.5">
@@ -1340,8 +1370,8 @@ export default function DashboardPage() {
               </AnimatePresence>
             </div>
           </div>
-          <div className="space-y-1">
-            <h2 className="text-3xl font-light tracking-tight">안녕하세요, {profile?.nickname || profile?.name}님</h2>
+          <div className="space-y-3">
+            <h2 className="text-[25px] font-light tracking-tight">안녕하세요, {profile?.nickname || profile?.name}님</h2>
             <p className="text-xs text-zinc-400">사랑스러운 나의 {pets.length}마리의 아이들을 돌봐주세요 ദ്디⁼ˆ╹⥿╹ˆ⁼)</p>
           </div>
         </section>
@@ -1354,22 +1384,43 @@ export default function DashboardPage() {
           return (
             <motion.section initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} className="space-y-12">
               <div className="space-y-3">
-                <span className="text-[10px] tracking-[0.3em] text-zinc-400 uppercase font-mono font-bold">COLLECTIVE SYSTEM</span>
+                <span className="text-[10px] tracking-[0.3em] text-zinc-400 uppercase font-mono font-bold">포켓룸</span>
                 <div className="relative aspect-video sm:aspect-[21/9] bg-white border-[1px] border-zinc-900 rounded-2xl overflow-hidden flex items-center justify-center group shadow-2xl shadow-zinc-100">
                   <div className="absolute top-6 left-8 flex flex-col gap-1.5">
                     <div className="flex items-center gap-2">
                       <div className="w-1.5 h-1.5 rounded-full bg-red-500 animate-pulse" />
-                      <span className="text-[9px] font-mono text-zinc-900 tracking-widest uppercase font-bold">집착의 알</span>
+                      {isEditingTamagotchi ? (
+                        <div className="flex items-center gap-2 animate-in slide-in-from-left-1 duration-300">
+                          <input 
+                            autoFocus
+                            type="text" 
+                            className="text-[9px] font-pixel bg-white border border-black px-1.5 py-0.5 rounded-sm outline-none w-24 tracking-widest uppercase font-bold" 
+                            value={tamagotchiNameDraft} 
+                            onChange={(e) => setTamagotchiNameDraft(e.target.value)}
+                            onKeyDown={(e) => e.key === 'Enter' && handleUpdateTamagotchiName()}
+                            placeholder="이름 입력"
+                          />
+                          <button onClick={handleUpdateTamagotchiName} className="text-[7px] text-zinc-900 font-bold uppercase transition-transform hover:scale-105">SAVE</button>
+                          <button onClick={() => setIsEditingTamagotchi(false)} className="text-[7px] text-zinc-400 uppercase transition-transform hover:scale-105">ESC</button>
+                        </div>
+                      ) : (
+                        <div className="flex items-center gap-3 group relative">
+                          <span className="text-[9px] font-pixel text-zinc-900 tracking-widest uppercase font-bold">{family.tamagotchi_name || '?'}</span>
+                          {(!family.tamagotchi_name || family.tamagotchi_name === '?') && (
+                            <button onClick={() => { setTamagotchiNameDraft(''); setIsEditingTamagotchi(true); }} className="text-[7px] text-zinc-300 hover:text-black transition-colors opacity-0 group-hover:opacity-100 uppercase tracking-tighter font-pixel">이름짓기</button>
+                          )}
+                        </div>
+                      )}
                     </div>
-                    <span className="text-[9px] text-zinc-400 font-mono tracking-tighter">STATUS: {family.is_hatched ? 'HATCHED' : 'WAITING'}</span>
+                    <span className="text-[9px] text-[#888888] font-pixel tracking-tighter">상태: {family.is_hatched ? '부화함' : '대기 중'}</span>
                   </div>
                   <div className="absolute bottom-6 left-8 right-8 flex justify-between items-end">
                     <div className="space-y-4 w-full max-w-[140px]">
-                      <div className="flex justify-between items-end"><span className="text-[9px] text-zinc-900 font-mono tracking-widest uppercase font-bold">HEART GAUGE</span><span className="text-[10px] text-zinc-900 font-bold font-mono">{family.heart_points || 0}%</span></div>
+                      <div className="flex justify-between items-end"><span className="text-[9px] text-zinc-900 font-pixel tracking-widest uppercase font-bold">하트 게이지</span><span className="text-[10px] text-zinc-900 font-bold font-pixel">{family.heart_points || 0}%</span></div>
                       <div className="h-[3px] w-full bg-zinc-50 rounded-full overflow-hidden"><motion.div initial={{ width: 0 }} animate={{ width: `${family.heart_points || 0}%` }} className="h-full bg-black" /></div>
                     </div>
                     <div className="flex flex-col items-end gap-3">
-                      <span className="text-[9px] text-zinc-900 font-mono tracking-widest uppercase font-bold">ZIPSA STAMPS</span>
+                      <span className="text-[9px] text-zinc-900 font-pixel tracking-widest uppercase font-bold">집사 스탬프</span>
                       <div className="flex gap-2"> { [1, 2, 3, 4, 5, 6, 7].map(day => (
                         <div key={day} className={`w-5 h-5 rounded-sm border-[1px] flex items-center justify-center transition-all duration-500 ${(family.active_days_count || 0) >= day ? 'bg-black border-black text-white' : 'border-zinc-100 bg-white'}`}>
                           {(family.active_days_count || 0) >= day && <Heart size={10} fill="currentColor" />}
@@ -1405,7 +1456,7 @@ export default function DashboardPage() {
                   <div className="flex justify-between items-center"><p className="text-[8px] text-zinc-400 uppercase tracking-tighter truncate w-3/4">{pet.species}</p><Link href={`/dashboard/edit-pet/${pet.id}`} onClick={(e) => e.stopPropagation()} className="text-[8px] text-zinc-300 hover:text-black">수정</Link></div>
                 </div>
               </div> ))}
-            <Link href="/dashboard/add-pet" className="group shrink-0 w-[120px] snap-start aspect-square border-2 border-dashed border-zinc-100 rounded-2xl flex flex-col items-center justify-center gap-2 hover:border-black transition-all bg-zinc-50/30"><div className="w-8 h-8 rounded-full bg-zinc-100 flex items-center justify-center group-hover:bg-black transition-colors"><span className="text-zinc-400 group-hover:text-white">+</span></div><span className="text-[9px] text-zinc-400 uppercase tracking-widest font-semibold group-hover:text-black">Add Pet</span></Link>
+            <Link href="/dashboard/add-pet" className="group shrink-0 w-[120px] snap-start aspect-square border-2 border-dashed border-zinc-100 rounded-2xl flex flex-col items-center justify-center gap-2 hover:border-black transition-all bg-zinc-50/30"><div className="w-8 h-8 rounded-full bg-zinc-100 flex items-center justify-center group-hover:bg-black transition-colors"><span className="text-zinc-400 group-hover:text-white">+</span></div><span className="text-[9px] text-zinc-400 uppercase tracking-widest font-semibold group-hover:text-black">아이 추가</span></Link>
             {pets.length === 0 && ( <p className="text-[10px] text-zinc-300 py-10 pl-6 uppercase tracking-widest italic">등록된 아이가 없습니다</p> )}
           </div>
         </section>
@@ -1418,9 +1469,7 @@ export default function DashboardPage() {
               const species = (selectedPet?.species || '').toLowerCase();
               const activityLabel = species.includes('고양이') ? '사냥놀이하기' : (species.includes('햄스터') ? '운동시키기' : (species.includes('토끼') || species.includes('새') ? '자유시간주기' : '산책하기'));
               return ['밥 먹이기', activityLabel, '약 먹이기', '간식 먹이기', '기타'];
-            })().map((type) => (
-              <button key={type} onClick={() => { setRecordingType(type); setRecordStep(1); setRecordData({ type: '', amountValue: '', amountUnit: 'g', memo: '', duration: '', mood: '' }); }} className="group border border-zinc-100 p-6 space-y-4 hover:border-black transition-all text-left"><div className="w-8 h-8 bg-zinc-50 rounded-full flex items-center justify-center group-hover:bg-black group-hover:text-white transition-colors"><span className="text-[10px] font-bold">+</span></div><div className="space-y-1"><p className="text-xs font-semibold">{type}</p><p className="text-[9px] text-zinc-300 uppercase tracking-tighter">Quick Record</p></div></button>
-            ))}
+              })().map((type) => ( <button key={type} onClick={() => { setRecordingType(type); setRecordStep(1); setRecordData({ type: '', amountValue: '', amountUnit: 'g', memo: '', duration: '', mood: '' }); }} className="group border border-zinc-100 p-6 space-y-4 hover:border-black transition-all text-left"><div className="w-8 h-8 bg-zinc-50 rounded-full flex items-center justify-center group-hover:bg-black group-hover:text-white transition-colors"><span className="text-[10px] font-bold">+</span></div><div className="space-y-1"><p className="text-xs font-semibold">{type}</p><p className="text-[9px] text-zinc-300 uppercase tracking-tighter">간편 기록</p></div></button> ))}
           </div>
         </section>
 
