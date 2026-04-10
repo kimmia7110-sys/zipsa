@@ -75,6 +75,8 @@ export default function DashboardPage() {
   const [showInlineFamilies, setShowInlineFamilies] = useState(false);
   const [isEditingTamagotchi, setIsEditingTamagotchi] = useState(false);
   const [tamagotchiNameDraft, setTamagotchiNameDraft] = useState("");
+  const [historyViewMode, setHistoryViewMode] = useState<'day' | 'week' | 'month'>('month');
+  const [historySelectedDate, setHistorySelectedDate] = useState(new Date());
 
   useEffect(() => {
     fetchData();
@@ -364,7 +366,14 @@ export default function DashboardPage() {
   };
 
   const handleRecordActivity = async () => {
-    if (!selectedPetId || !recordingType) return;
+    if (!selectedPetId) {
+      alert("아이를 선택해주세요.");
+      return;
+    }
+    if (!recordingType) {
+      alert("기록 유형이 선택되지 않았습니다.");
+      return;
+    }
     setIsSubmitting(true);
     
     const { data: { user } } = await supabase.auth.getUser();
@@ -396,7 +405,9 @@ export default function DashboardPage() {
     }
 
     try {
-      if (!profile?.families) return;
+      if (!profile?.families) {
+        throw new Error("가족 그룹 정보를 찾을 수 없습니다.");
+      }
       const family = profile.families;
 
       const today = new Date().toISOString().split('T')[0];
@@ -1091,7 +1102,9 @@ export default function DashboardPage() {
               />
               <div className="flex gap-3 pt-6">
                 <button onClick={() => setRecordStep(2)} className="flex-1 py-4 text-sm font-medium border border-zinc-100 rounded-xl">이전으로</button>
-                <button disabled={isSubmitting} onClick={handleRecordActivity} className="flex-[2] py-4 text-sm font-medium bg-black text-white rounded-xl">기록 완료</button>
+                <button disabled={isSubmitting} onClick={handleRecordActivity} className="flex-[2] py-4 text-sm font-medium bg-black text-white rounded-xl active:scale-[0.98] transition-all disabled:bg-zinc-100 disabled:text-zinc-400">
+                  {isSubmitting ? "기록 중..." : "기록 완료"}
+                </button>
               </div>
             </div>
           )}
@@ -1171,7 +1184,9 @@ export default function DashboardPage() {
                 </div>
                 <div className="flex gap-3 pt-6">
                   <button onClick={() => setRecordStep(1)} className="flex-1 py-4 text-xs font-medium border border-zinc-100 rounded-xl hover:bg-zinc-50 transition-colors uppercase tracking-widest text-zinc-400">이전</button>
-                  <button disabled={!recordData.amountValue || isSubmitting} onClick={handleRecordActivity} className="flex-[2] py-5 text-sm font-semibold bg-black text-white rounded-2xl shadow-xl shadow-black/10 active:scale-[0.98] transition-all disabled:bg-zinc-100 disabled:shadow-none">{isSubmitting ? "기록 중..." : "기록 완료"}</button>
+                  <button disabled={!recordData.amountValue || isSubmitting} onClick={handleRecordActivity} className="flex-[2] py-5 text-sm font-semibold bg-black text-white rounded-2xl shadow-xl shadow-black/10 active:scale-[0.98] transition-all disabled:bg-zinc-100 disabled:shadow-none">
+                    {isSubmitting ? "기록 중..." : "기록 완료"}
+                  </button>
                 </div>
               </div>
             </div>
@@ -1186,7 +1201,9 @@ export default function DashboardPage() {
         <input autoFocus type="text" placeholder="상세 내용을 입력하세요" className="w-full text-xl font-light border-b border-zinc-100 focus:border-black focus:ring-0 py-4 placeholder:text-zinc-200" value={recordData.memo} onChange={(e) => setRecordData({ ...recordData, memo: e.target.value })} />
         <div className="flex gap-3 pt-6">
           <button onClick={() => setRecordingType(null)} className="flex-1 py-4 text-sm font-medium border border-zinc-100 rounded-xl">취소</button>
-          <button disabled={!recordData.memo || isSubmitting} onClick={handleRecordActivity} className="flex-[2] py-4 text-sm font-medium bg-black text-white rounded-xl disabled:bg-zinc-100">기록 완료</button>
+          <button disabled={!recordData.memo || isSubmitting} onClick={handleRecordActivity} className="flex-[2] py-4 text-sm font-medium bg-black text-white rounded-xl active:scale-[0.98] transition-all disabled:bg-zinc-100 disabled:text-zinc-400">
+            {isSubmitting ? "기록 중..." : "기록 완료"}
+          </button>
         </div>
       </div>
     );
@@ -1416,16 +1433,8 @@ export default function DashboardPage() {
                   </div>
                   <div className="absolute bottom-6 left-8 right-8 flex justify-between items-end">
                     <div className="space-y-4 w-full max-w-[140px]">
-                      <div className="flex justify-between items-end"><span className="text-[9px] text-zinc-900 font-pixel tracking-widest uppercase font-bold">하트 게이지</span><span className="text-[10px] text-zinc-900 font-bold font-pixel">{family.heart_points || 0}%</span></div>
+                      <div className="flex justify-between items-end"><span className="text-[10px] filter grayscale group-hover:grayscale-0 transition-all">❤️</span><span className="text-[10px] text-zinc-900 font-bold font-pixel">{family.heart_points || 0}%</span></div>
                       <div className="h-[3px] w-full bg-zinc-50 rounded-full overflow-hidden"><motion.div initial={{ width: 0 }} animate={{ width: `${family.heart_points || 0}%` }} className="h-full bg-black" /></div>
-                    </div>
-                    <div className="flex flex-col items-end gap-3">
-                      <span className="text-[9px] text-zinc-900 font-pixel tracking-widest uppercase font-bold">집사 스탬프</span>
-                      <div className="flex gap-2"> { [1, 2, 3, 4, 5, 6, 7].map(day => (
-                        <div key={day} className={`w-5 h-5 rounded-sm border-[1px] flex items-center justify-center transition-all duration-500 ${(family.active_days_count || 0) >= day ? 'bg-black border-black text-white' : 'border-zinc-100 bg-white'}`}>
-                          {(family.active_days_count || 0) >= day && <Heart size={10} fill="currentColor" />}
-                        </div> ))}
-                      </div>
                     </div>
                   </div>
                 </div>
@@ -1491,8 +1500,14 @@ export default function DashboardPage() {
         <section className="space-y-8">
           <h3 className="text-xs tracking-widest text-zinc-400 uppercase font-medium">최근 기록</h3>
           <div className="space-y-4">
-            {activities.filter(a => a.pet_id === selectedPetId).length > 0 ? (
-              activities.filter(a => a.pet_id === selectedPetId).map((activity) => (
+            {activities.filter(a => {
+              const isToday = new Date(a.timestamp).toDateString() === new Date().toDateString();
+              return a.pet_id === selectedPetId && isToday;
+            }).length > 0 ? (
+              activities.filter(a => {
+                const isToday = new Date(a.timestamp).toDateString() === new Date().toDateString();
+                return a.pet_id === selectedPetId && isToday;
+              }).map((activity) => (
                 <div key={activity.id} className="group relative py-6 border-b border-zinc-50 hover:bg-zinc-50/50 transition-colors px-2 -mx-2 rounded-lg">
                   <div className="flex justify-between items-start">
                     <div className="flex items-center gap-4">
@@ -1513,6 +1528,203 @@ export default function DashboardPage() {
                 </div>
               ))
             ) : ( <p className="text-[10px] text-zinc-300 py-10 text-center">최근 기록이 없습니다.</p> )}
+          </div>
+        </section>
+
+        <section className="space-y-12 pt-20 border-t border-zinc-50">
+          <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-6">
+            <div className="space-y-1">
+              <h3 className="text-xs tracking-widest text-[#888888] uppercase font-medium">활동 히스토리</h3>
+              <h4 className="text-[20px] font-light tracking-tight text-[#1A1A1A]">
+                {historySelectedDate.getFullYear()}년 {historySelectedDate.getMonth() + 1}월
+              </h4>
+            </div>
+            
+            <div className="flex bg-zinc-50 p-1 rounded-lg">
+              {(['day', 'week', 'month'] as const).map((mode) => (
+                <button
+                  key={mode}
+                  onClick={() => setHistoryViewMode(mode)}
+                  className={`px-4 py-1.5 text-[10px] font-bold uppercase tracking-widest transition-all rounded-md ${
+                    historyViewMode === mode ? 'bg-white text-[#1A1A1A] shadow-sm' : 'text-zinc-400 hover:text-zinc-600'
+                  }`}
+                >
+                  {mode === 'day' ? '일' : mode === 'week' ? '주' : '월'}
+                </button>
+              ))}
+            </div>
+          </div>
+
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-12">
+            {/* Calendar View */}
+            <div className="bg-white border border-zinc-900 rounded-3xl p-8 shadow-2xl shadow-zinc-100/50">
+              <div className="flex items-center justify-between mb-8">
+                <button onClick={() => setHistorySelectedDate(new Date(historySelectedDate.getFullYear(), historySelectedDate.getMonth() - 1))} className="p-2 hover:bg-zinc-50 rounded-full transition-colors text-zinc-300 hover:text-[#1A1A1A]">
+                  <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1} d="M15 19l-7-7 7-7" /></svg>
+                </button>
+                <span className="text-[12px] font-pixel tracking-widest uppercase font-bold text-[#1A1A1A]">
+                  {historySelectedDate.toLocaleDateString('ko-KR', { year: 'numeric', month: 'long' })}
+                </span>
+                <button onClick={() => setHistorySelectedDate(new Date(historySelectedDate.getFullYear(), historySelectedDate.getMonth() + 1))} className="p-2 hover:bg-zinc-50 rounded-full transition-colors text-zinc-300 hover:text-[#1A1A1A]">
+                  <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1} d="M9 5l7 7-7 7" /></svg>
+                </button>
+              </div>
+
+              {historyViewMode === 'month' && (
+                <div className="grid grid-cols-7 gap-1 text-center mb-4">
+                  {['SUN', 'MON', 'TUE', 'WED', 'THU', 'FRI', 'SAT'].map(day => (
+                    <span key={day} className="text-[8px] font-mono font-bold text-zinc-300 tracking-widest">{day}</span>
+                  ))}
+                </div>
+              )}
+
+              <div className="grid grid-cols-7 gap-1">
+                {(() => {
+                  const d = historySelectedDate;
+                  
+                  if (historyViewMode === 'day') {
+                    return (
+                      <div className="col-span-7 py-6 flex flex-col items-center justify-center space-y-3 animate-in fade-in slide-in-from-bottom-2 duration-400">
+                        <div className="w-16 h-16 bg-[#1A1A1A] text-white rounded-2xl flex flex-col items-center justify-center shadow-xl shadow-zinc-200">
+                          <span className="text-xl font-bold font-mono tracking-tighter">{d.getDate()}</span>
+                          <span className="text-[8px] uppercase tracking-widest opacity-40 font-black">{d.toLocaleDateString('en-US', { weekday: 'short' })}</span>
+                        </div>
+                        <p className="text-[9px] text-zinc-300 uppercase tracking-widest font-medium">Focused View</p>
+                      </div>
+                    );
+                  }
+
+                  if (historyViewMode === 'week') {
+                    const startOfWeek = new Date(d);
+                    startOfWeek.setDate(d.getDate() - d.getDay()); 
+                    
+                    const weekDays = [];
+                    for (let i = 0; i < 7; i++) {
+                      const day = new Date(startOfWeek);
+                      day.setDate(startOfWeek.getDate() + i);
+                      const isSelected = d.toDateString() === day.toDateString();
+                      const isToday = new Date().toDateString() === day.toDateString();
+                      const dateStr = `${day.getFullYear()}-${String(day.getMonth() + 1).padStart(2, '0')}-${String(day.getDate()).padStart(2, '0')}`;
+                      const hasActivity = activities.some(a => a.timestamp.startsWith(dateStr) && (!selectedPetId || a.pet_id === selectedPetId));
+
+                      weekDays.push(
+                        <button
+                          key={i}
+                          onClick={() => setHistorySelectedDate(day)}
+                          className={`aspect-square flex flex-col items-center justify-center rounded-xl transition-all relative group ${
+                            isSelected ? 'bg-[#1A1A1A] text-white shadow-xl scale-105 z-10' : 'hover:bg-zinc-50'
+                          }`}
+                        >
+                          <span className="text-[8px] font-mono text-zinc-300 mb-1">{['S','M','T','W','T','F','S'][i]}</span>
+                          <span className={`text-[10px] font-mono ${isSelected ? 'font-bold' : 'text-[#1A1A1A]'} ${isToday && !isSelected ? 'text-red-500 font-bold underline' : ''}`}>{day.getDate()}</span>
+                          {hasActivity && !isSelected && (
+                            <div className="w-1 h-1 rounded-full bg-black mt-1 opacity-20 group-hover:opacity-100 transition-opacity" />
+                          )}
+                        </button>
+                      );
+                    }
+                    return <div className="col-span-7 grid grid-cols-7 gap-1 animate-in slide-in-from-left-2 duration-300">{weekDays}</div>;
+                  }
+
+                  const firstDay = new Date(d.getFullYear(), d.getMonth(), 1).getDay();
+                  const daysInMonth = new Date(d.getFullYear(), d.getMonth() + 1, 0).getDate();
+                  
+                  const days = [];
+                  for (let i = 0; i < firstDay; i++) days.push(<div key={`empty-${i}`} />);
+                  for (let dNum = 1; dNum <= daysInMonth; dNum++) {
+                    const currentLoopDay = new Date(d.getFullYear(), d.getMonth(), dNum);
+                    const dateStr = `${currentLoopDay.getFullYear()}-${String(currentLoopDay.getMonth() + 1).padStart(2, '0')}-${String(currentLoopDay.getDate()).padStart(2, '0')}`;
+                    const hasActivity = activities.some(a => a.timestamp.startsWith(dateStr) && (!selectedPetId || a.pet_id === selectedPetId));
+                    const isSelected = historySelectedDate.getDate() === dNum && historySelectedDate.getMonth() === d.getMonth();
+                    const isToday = new Date().toDateString() === currentLoopDay.toDateString();
+                    
+                    days.push(
+                      <button
+                        key={dNum}
+                        onClick={() => setHistorySelectedDate(new Date(d.getFullYear(), d.getMonth(), dNum))}
+                        className={`aspect-square flex flex-col items-center justify-center rounded-xl transition-all relative group animate-in fade-in duration-300 ${
+                          isSelected ? 'bg-[#1A1A1A] text-white shadow-xl scale-105 z-10' : 'hover:bg-zinc-50'
+                        }`}
+                      >
+                        <span className={`text-[10px] font-mono ${isSelected ? 'font-bold' : 'text-[#1A1A1A]'} ${isToday && !isSelected ? 'text-red-500 font-bold underline' : ''}`}>{dNum}</span>
+                        {hasActivity && !isSelected && (
+                          <div className="w-1 h-1 rounded-full bg-black mt-1 opacity-20 group-hover:opacity-100 transition-opacity" />
+                        )}
+                      </button>
+                    );
+                  }
+                  return days;
+                })()}
+              </div>
+            </div>
+
+            {/* History Details View */}
+            <div className="space-y-8">
+              <div className="flex items-center justify-between border-b border-zinc-50 pb-4">
+                <h5 className="text-[11px] font-bold text-[#1A1A1A] uppercase tracking-widest">
+                  {historyViewMode === 'day' ? '일간 기록' : historyViewMode === 'week' ? '주간 기록' : '월간 기록'}
+                </h5>
+                <span className="text-[10px] text-[#888888] font-mono">
+                  {historyViewMode === 'day' ? (
+                    historySelectedDate.toLocaleDateString('ko-KR', { month: 'long', day: 'numeric', weekday: 'short' })
+                  ) : historyViewMode === 'week' ? (
+                    '최근 7일'
+                  ) : (
+                    `${historySelectedDate.getMonth() + 1}월 전체`
+                  )}
+                </span>
+              </div>
+
+              <div className="space-y-6 max-h-[400px] overflow-y-auto pr-4 custom-scrollbar">
+                {(() => {
+                  const filtered = activities.filter(a => {
+                    const aDate = new Date(a.timestamp);
+                    const sDate = historySelectedDate;
+                    
+                    if (selectedPetId && a.pet_id !== selectedPetId) return false;
+
+                    if (historyViewMode === 'day') {
+                      return aDate.toDateString() === sDate.toDateString();
+                    } else if (historyViewMode === 'week') {
+                      const diff = sDate.getTime() - aDate.getTime();
+                      return diff >= 0 && diff < 7 * 24 * 60 * 60 * 1000;
+                    } else {
+                      return aDate.getMonth() === sDate.getMonth() && aDate.getFullYear() === sDate.getFullYear();
+                    }
+                  });
+
+                  return filtered.length > 0 ? (
+                    filtered.map((activity) => (
+                      <div key={activity.id} className="flex gap-4 items-start group border-b border-zinc-50 pb-4 last:border-0 last:pb-0">
+                        <div className="w-8 h-8 rounded-lg bg-zinc-50 border border-zinc-100 flex items-center justify-center shrink-0">
+                          <span className="text-[10px] filter grayscale group-hover:grayscale-0 transition-all">
+                            {activity.type === '밥 먹이기' ? '🥣' : 
+                             activity.type === '산책하기' ? '🦮' : 
+                             activity.type === '약 먹이기' ? '💊' : 
+                             activity.type === '놀아주기' ? '🧶' : '📝'}
+                          </span>
+                        </div>
+                        <div className="space-y-1">
+                          <p className="text-[11px] font-bold text-[#1A1A1A]">{activity.type}</p>
+                          <p className="text-[10px] text-[#888888] leading-relaxed line-clamp-2 font-light">{activity.details}</p>
+                          <div className="flex items-center gap-2 pt-1">
+                            <span className="text-[8px] font-mono text-zinc-300 uppercase tracking-widest">
+                            {new Date(activity.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', hour12: false })}
+                            </span>
+                            <span className="text-[8px] font-bold px-1.5 py-0.5 bg-zinc-50 rounded text-zinc-400">{(activity as any).profiles?.nickname}</span>
+                          </div>
+                        </div>
+                      </div>
+                    ))
+                  ) : (
+                    <div className="py-20 text-center space-y-4">
+                      <div className="text-3xl opacity-10">🗓️</div>
+                      <p className="text-[10px] text-zinc-300 uppercase tracking-[0.2em] italic font-light">해당 기간의 기록이 없습니다.</p>
+                    </div>
+                  );
+                })()}
+              </div>
+            </div>
           </div>
         </section>
 
