@@ -15,7 +15,8 @@ import {
   Wind, 
   Zap,
   Activity as ActivityIcon,
-  Circle
+  Circle,
+  ChevronDown
 } from "lucide-react";
 
 interface Pet {
@@ -68,6 +69,7 @@ export default function DashboardPage() {
   const [myFamilies, setMyFamilies] = useState<any[]>([]);
   const [activeMyPageTab, setActiveMyPageTab] = useState<'root' | 'family' | 'profile' | 'switch'>('root');
   const [profileDraft, setProfileDraft] = useState({ nickname: '', phone: '' });
+  const [showInlineFamilies, setShowInlineFamilies] = useState(false);
 
   useEffect(() => {
     fetchData();
@@ -1250,15 +1252,7 @@ export default function DashboardPage() {
                             </div>
 
                             <div className="pt-2 border-t border-zinc-50 mt-1 space-y-1">
-                              <button 
-                                onClick={() => {
-                                  fetchMyFamilies();
-                                  setActiveMyPageTab('switch');
-                                }}
-                                className="w-full py-2 text-[8px] text-zinc-400 hover:text-black transition-colors uppercase tracking-widest font-bold border border-zinc-50 rounded-lg"
-                              >
-                                그룹 전환하기
-                              </button>
+
                               <button 
                                 onClick={handleLeaveFamily}
                                 className="w-full py-2 text-[8px] text-zinc-100 hover:text-red-500 transition-colors uppercase tracking-widest font-bold"
@@ -1327,7 +1321,83 @@ export default function DashboardPage() {
       <div className="max-w-[800px] mx-auto px-6 py-12 space-y-20">
         {/* Welcome Section */}
         <section className="space-y-4">
-          <p className="text-[10px] tracking-[0.2em] text-zinc-400 uppercase">홈</p>
+          <div className="flex flex-col gap-1.5">
+            <p className="text-[10px] tracking-[0.2em] text-zinc-400 uppercase">홈</p>
+            <div className="relative">
+              <button 
+                onClick={() => {
+                  fetchMyFamilies();
+                  setShowInlineFamilies(!showInlineFamilies);
+                }}
+                className="flex items-center gap-1.5 group"
+              >
+                <h1 className="text-2xl font-bold tracking-tight text-zinc-900 flex items-center gap-1.5">
+                  {profile?.families?.name || '가족 선택'}
+                  <ChevronDown className={`w-5 h-5 text-zinc-300 group-hover:text-black transition-all ${showInlineFamilies ? 'rotate-180' : ''}`} />
+                </h1>
+              </button>
+
+              <AnimatePresence>
+                {showInlineFamilies && (
+                  <>
+                    <div 
+                      className="fixed inset-0 z-[60]" 
+                      onClick={() => setShowInlineFamilies(false)} 
+                    />
+                    <motion.div 
+                      initial={{ opacity: 0, y: 10, scale: 0.95 }}
+                      animate={{ opacity: 1, y: 0, scale: 1 }}
+                      exit={{ opacity: 0, y: 10, scale: 0.95 }}
+                      transition={{ duration: 0.2, ease: "easeOut" }}
+                      className="absolute top-full left-0 mt-3 w-full max-w-[280px] bg-white z-[70] shadow-[0_20px_50px_rgba(0,0,0,0.12)] rounded-3xl border border-zinc-100 overflow-hidden p-2"
+                    >
+                      <div className="p-1 space-y-1">
+                        <p className="px-3 py-2 text-[8px] text-zinc-400 uppercase tracking-widest font-bold">나의 가족 그룹</p>
+                        {myFamilies.length > 0 ? (
+                          <div className="space-y-1 max-h-[240px] overflow-y-auto pr-1 custom-scrollbar">
+                            {myFamilies.map((fam: any) => (
+                              <button
+                                key={fam.id}
+                                onClick={() => handleSwitchFamily(fam.id, fam.name)}
+                                className={`w-full flex items-center justify-between p-4 rounded-2xl transition-all text-left ${
+                                  fam.id === profile?.family_id 
+                                    ? 'bg-zinc-900 text-white' 
+                                    : 'hover:bg-zinc-50 text-zinc-900'
+                                }`}
+                              >
+                                <div>
+                                  <p className="text-[11px] font-bold">{fam.name}</p>
+                                  <p className={`text-[9px] font-mono mt-0.5 ${fam.id === profile?.family_id ? 'text-zinc-400' : 'text-zinc-300'}`}>
+                                    CODE: {fam.invite_code}
+                                  </p>
+                                </div>
+                                {fam.id === profile?.family_id && (
+                                  <div className="w-1.5 h-1.5 rounded-full bg-white shadow-[0_0_10px_rgba(255,255,255,0.5)]" />
+                                )}
+                              </button>
+                            ))}
+                          </div>
+                        ) : (
+                          <div className="py-8 text-center space-y-2">
+                             <p className="text-[10px] text-zinc-300 uppercase tracking-widest italic">가족 목록을 불러오는 중...</p>
+                          </div>
+                        )}
+                        <div className="mt-2 pt-2 border-t border-zinc-50">
+                          <Link 
+                            href="/dashboard/family/create"
+                            className="flex items-center justify-center gap-2 p-3 text-[10px] text-zinc-500 font-bold hover:text-black transition-colors"
+                          >
+                            <span>+</span> 새 가족 만들기 / 합류하기
+                          </Link>
+                        </div>
+                      </div>
+                    </motion.div>
+                  </>
+                )}
+              </AnimatePresence>
+            </div>
+          </div>
+
           <div className="space-y-1">
             <h2 className="text-3xl font-light tracking-tight">안녕하세요, {profile?.nickname || profile?.name}님</h2>
             <p className="text-xs text-zinc-400">
