@@ -317,7 +317,7 @@ export default function AddPetPage() {
                       </button>
                       <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                         <div className="space-y-1.5">
-                          <label className="text-[9px] text-zinc-400 uppercase tracking-tighter">Drug Name</label>
+                          <label className="text-[9px] text-zinc-400 uppercase tracking-tighter">약 이름</label>
                           <input 
                             className="input-minimal bg-white text-xs h-10" 
                             placeholder="약 이름"
@@ -326,7 +326,7 @@ export default function AddPetPage() {
                           />
                         </div>
                         <div className="space-y-1.5">
-                          <label className="text-[9px] text-zinc-400 uppercase tracking-tighter">Frequency</label>
+                          <label className="text-[9px] text-zinc-400 uppercase tracking-tighter">복용 주기</label>
                           <input 
                             className="input-minimal bg-white text-xs h-10" 
                             placeholder="복용 횟수 (예: 일 2회)"
@@ -336,7 +336,7 @@ export default function AddPetPage() {
                         </div>
                       </div>
                       <div className="space-y-1.5">
-                        <label className="text-[9px] text-zinc-400 uppercase tracking-tighter">Notes</label>
+                        <label className="text-[9px] text-zinc-400 uppercase tracking-tighter">메모</label>
                         <input 
                           className="input-minimal bg-white text-xs h-10" 
                           placeholder="추가 메모"

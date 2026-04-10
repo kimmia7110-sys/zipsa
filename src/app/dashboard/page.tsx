@@ -233,7 +233,7 @@ export default function DashboardPage() {
         .select("*, pets(name), profiles(nickname)")
         .eq("pet_id", selectedPetId)
         .order("timestamp", { ascending: false })
-        .limit(30);
+        .limit(500);
 
       if (error) throw error;
       setActivities((data as unknown as Activity[]) || []);
@@ -242,9 +242,9 @@ export default function DashboardPage() {
     }
   };
 
-  const fetchData = async () => {
+  const fetchData = async (isBackground = false) => {
     try {
-      setLoading(true);
+      if (!isBackground) setLoading(true);
       const { data: authData } = await supabase.auth.getUser();
       const user = authData?.user;
 
@@ -306,7 +306,7 @@ export default function DashboardPage() {
               .from("activities")
               .select("*, pets(name), profiles(nickname)")
               .order("timestamp", { ascending: false })
-              .limit(30);
+              .limit(500);
 
             if (selectedPetId) {
               activityQuery = activityQuery.eq("pet_id", selectedPetId);
@@ -339,7 +339,7 @@ export default function DashboardPage() {
     } catch (error: any) {
       console.error("Dashboard Main FetchData Error:", JSON.stringify(error, null, 2));
     } finally {
-      setLoading(false);
+      if (!isBackground) setLoading(false);
     }
   };
 
@@ -355,7 +355,7 @@ export default function DashboardPage() {
         schema: 'public', 
         table: 'activities' 
       }, () => {
-        fetchData();
+        fetchData(true);
         fetchNotifications();
       })
       .on('postgres_changes', {
@@ -363,14 +363,14 @@ export default function DashboardPage() {
         schema: 'public',
         table: 'pets'
       }, () => {
-        fetchData();
+        fetchData(true);
       })
       .on('postgres_changes', {
         event: '*',
         schema: 'public',
         table: 'families'
       }, () => {
-        fetchData();
+        fetchData(true);
       })
       .subscribe();
 
