@@ -79,6 +79,9 @@ export default function DashboardPage() {
   const [historyViewMode, setHistoryViewMode] = useState<'day' | 'week' | 'month'>('month');
   const [historySelectedDate, setHistorySelectedDate] = useState(new Date());
   
+  // Navigation State
+  const [activeBottomTab, setActiveBottomTab] = useState<'home' | 'pocket' | 'calendar'>('home');
+  
   // Notification States
   const [notificationCount, setNotificationCount] = useState(0);
   const [recentNotifications, setRecentNotifications] = useState<any[]>([]);
@@ -1487,7 +1490,7 @@ export default function DashboardPage() {
         </div>
       </nav>
 
-      <div className="max-w-[800px] mx-auto px-6 py-12 space-y-12">
+      <div className="max-w-[800px] mx-auto px-6 pt-12 pb-28 space-y-12">
         <section className="space-y-4">
           <div className="flex flex-col gap-1.5">
             <p className="text-[12px] tracking-[0.2em] text-zinc-400 uppercase">홈</p>
@@ -1554,7 +1557,7 @@ export default function DashboardPage() {
           </div>
         </section>
 
-        {(() => {
+        {activeBottomTab === 'pocket' && (() => {
           const family = profile?.families;
           if (!family) return null;
           const today = new Date().toISOString().split('T')[0];
@@ -1607,7 +1610,9 @@ export default function DashboardPage() {
           );
         })()}
 
-        <section className="space-y-8">
+        {activeBottomTab === 'home' && (
+          <>
+            <section className="space-y-8">
           <div className="flex justify-between items-end">
             <h3 className="text-xs tracking-widest text-zinc-900 uppercase font-semibold">아이 프로필을 선택해주세요</h3>
             <Link href="/dashboard/add-pet" className="text-[10px] underline underline-offset-4 decoration-[0.5px] hover:text-zinc-500">아이 추가하기</Link>
@@ -1696,8 +1701,11 @@ export default function DashboardPage() {
             ) : ( <p className="text-[10px] text-zinc-300 py-10 text-center">최근 기록이 없습니다.</p> )}
           </div>
         </section>
+          </>
+        )}
 
-        <section className="space-y-12 pt-20 border-t border-zinc-50">
+        {activeBottomTab === 'calendar' && (
+          <section className="space-y-12 border-t border-zinc-50 pt-2">
           <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-6">
             <div className="space-y-1">
               <h3 className="text-xs tracking-widest text-[#888888] uppercase font-medium">활동 히스토리</h3>
@@ -1893,6 +1901,7 @@ export default function DashboardPage() {
             </div>
           </div>
         </section>
+        )}
 
         <footer className="pt-20 border-t border-zinc-100 pb-10">
           <div className="flex justify-between items-center text-[10px] text-zinc-400 font-mono"><span>가족 코드: {profile?.families?.invite_code}</span><span>© 2026 ZIPCHAK</span></div>
@@ -1928,6 +1937,22 @@ export default function DashboardPage() {
         )}
 
       </div>
+
+      {/* Bottom Navigation */}
+      <nav className="fixed bottom-0 left-0 right-0 bg-white border-t border-zinc-100 z-[100] px-6 py-2 flex justify-between items-center max-w-[800px] mx-auto pb-safe shadow-[0_-5px_20px_rgba(0,0,0,0.03)]">
+        <button onClick={() => setActiveBottomTab('home')} className={`flex flex-col items-center gap-1.5 transition-colors flex-1 py-1 sm:py-2 ${activeBottomTab === 'home' ? 'text-black' : 'text-zinc-400 hover:text-zinc-600'}`}>
+          <svg width="24" height="24" viewBox="0 0 24 24" fill={activeBottomTab === 'home' ? "currentColor" : "none"} stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"></path><polyline points="9 22 9 12 15 12 15 22"></polyline></svg>
+          <span className="text-[10px] font-bold tracking-widest uppercase">홈</span>
+        </button>
+        <button onClick={() => setActiveBottomTab('pocket')} className={`flex flex-col items-center gap-1.5 transition-colors flex-1 py-1 sm:py-2 ${activeBottomTab === 'pocket' ? 'text-black' : 'text-zinc-400 hover:text-zinc-600'}`}>
+          <svg width="24" height="24" viewBox="0 0 24 24" fill={activeBottomTab === 'pocket' ? "currentColor" : "none"} stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"></circle><path d="M8 14s1.5 2 4 2 4-2 4-2"></path><line x1="9" y1="9" x2="9.01" y2="9"></line><line x1="15" y1="9" x2="15.01" y2="9"></line></svg>
+          <span className="text-[10px] font-bold tracking-widest uppercase">포켓룸</span>
+        </button>
+        <button onClick={() => setActiveBottomTab('calendar')} className={`flex flex-col items-center gap-1.5 transition-colors flex-1 py-1 sm:py-2 ${activeBottomTab === 'calendar' ? 'text-black' : 'text-zinc-400 hover:text-zinc-600'}`}>
+          <svg width="24" height="24" viewBox="0 0 24 24" fill={activeBottomTab === 'calendar' ? "currentColor" : "none"} stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect><line x1="16" y1="2" x2="16" y2="6"></line><line x1="8" y1="2" x2="8" y2="6"></line><line x1="3" y1="10" x2="21" y2="10"></line></svg>
+          <span className="text-[10px] font-bold tracking-widest uppercase">일정</span>
+        </button>
+      </nav>
     </main>
   );
 }
