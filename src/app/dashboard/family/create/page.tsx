@@ -23,25 +23,8 @@ export default function CreateFamilyPage() {
     
     setLoading(true);
     try {
-      const isMasterMode = localStorage.getItem("zipsa_master_mode") === "true";
-      let user: any = null;
       const { data: authData } = await supabase.auth.getUser();
-      user = authData?.user;
-
-      if (!user && isMasterMode) {
-        const { data: targetProfile } = await supabase
-          .from("profiles")
-          .select("id")
-          .eq("email", "kimmia7110@gmail.com")
-          .maybeSingle();
-        
-        if (targetProfile) {
-          user = { id: targetProfile.id };
-        } else {
-          const { data: anyProfile } = await supabase.from("profiles").select("id").limit(1).single();
-          if (anyProfile) user = { id: anyProfile.id };
-        }
-      }
+      const user = authData?.user;
 
       if (!user) throw new Error("로그인이 필요합니다.");
 
@@ -83,25 +66,8 @@ export default function CreateFamilyPage() {
 
     setLoading(true);
     try {
-      const isMasterMode = localStorage.getItem("zipsa_master_mode") === "true";
-      let user: any = null;
       const { data: authData } = await supabase.auth.getUser();
-      user = authData?.user;
-
-      if (!user && isMasterMode) {
-        const { data: targetProfile } = await supabase
-          .from("profiles")
-          .select("id")
-          .eq("email", "kimmia7110@gmail.com")
-          .maybeSingle();
-        
-        if (targetProfile) {
-          user = { id: targetProfile.id };
-        } else {
-          const { data: anyProfile } = await supabase.from("profiles").select("id").limit(1).single();
-          if (anyProfile) user = { id: anyProfile.id };
-        }
-      }
+      const user = authData?.user;
 
       if (!user) throw new Error("로그인이 필요합니다.");
 

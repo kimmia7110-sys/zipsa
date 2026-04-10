@@ -27,36 +27,15 @@ export default function ProfilePage() {
   const fetchProfile = async () => {
     try {
       setLoading(true);
-      const isMasterMode = typeof window !== 'undefined' && localStorage.getItem("zipsa_master_mode") === "true";
-      
-      // 1. 실제 로그인 세션 먼저 확인 (최우선)
-      const { data: authData } = await supabase.auth.getUser();
-      let user = authData?.user;
 
-      // 2. 세션이 없고 마스터 모드인 경우에만 마스터 정보 찾기
-      if (!user && isMasterMode) {
-        const { data: targetProfile } = await supabase
-          .from("profiles")
-          .select("id, name, nickname, phone, gender, address, avatar_url, email")
-          .in("email", ["kimmia7110@gmail.com", "kijj7110@gmail.com"])
-          .limit(1)
-          .maybeSingle();
-        
-        if (targetProfile) {
-          user = { id: targetProfile.id, email: targetProfile.email } as any;
-        } else {
-          // 마스터 이메일도 없으면 아무 프로필이나 하나 빌려옴
-          const { data: anyProfile } = await supabase.from("profiles").select("id, email").limit(1).maybeSingle();
-          if (anyProfile) user = { id: anyProfile.id, email: anyProfile.email } as any;
-        }
-      }
+      const { data: authData } = await supabase.auth.getUser();
+      const user = authData?.user;
 
       if (!user) {
-        setLoading(false);
+        router.push("/");
         return;
       }
 
-      // 3. 최종 확정된 user.id로 프로필 상세 정보 조회
       const { data, error } = await supabase
         .from("profiles")
         .select("id, name, nickname, phone, gender, address, avatar_url")
@@ -64,29 +43,16 @@ export default function ProfilePage() {
         .maybeSingle();
 
       if (error) throw error;
-      
+
       if (data) {
         setProfile(data);
-        // 실제 데이터가 있으면 그것을 사용, 없으면 마스터 모드일 때만 기본값 제공
-        const useMD = isMasterMode && (user.email === "kimmia7110@gmail.com" || user.email === "kijj7110@gmail.com");
-        
         setFormData({
-          name: data.name || (useMD ? "김민정" : ""),
-          nickname: data.nickname || (useMD ? "민정님" : ""),
-          phone: data.phone || (useMD ? "010-0000-0000" : ""),
-          gender: data.gender || (useMD ? "여성" : ""),
-          address: data.address || (useMD ? "서울특별시" : ""),
+          name: data.name || "",
+          nickname: data.nickname || "",
+          phone: data.phone || "",
+          gender: data.gender || "",
+          address: data.address || "",
           avatar_url: data.avatar_url || ""
-        });
-      } else if (isMasterMode) {
-        // 프로필 테이블에도 데이터가 아예 없는 극단적 마스터 모드 상황
-        setFormData({
-          name: "김민정",
-          nickname: "민정님",
-          phone: "010-0000-0000",
-          gender: "여성",
-          address: "서울특별시",
-          avatar_url: ""
         });
       }
     } catch (error: any) {
@@ -99,20 +65,7 @@ export default function ProfilePage() {
   const handleUpdate = async () => {
     try {
       setIsSubmitting(true);
-      const isMasterMode = localStorage.getItem("zipsa_master_mode") === "true";
       let userId = profile?.id;
-      
-      if (!userId && isMasterMode) {
-        const { data: targetProfile } = await supabase
-          .from("profiles")
-          .select("id")
-          .in("email", ["kimmia7110@gmail.com", "kijj7110@gmail.com"])
-          .limit(1)
-          .maybeSingle();
-        
-        if (targetProfile) userId = targetProfile.id;
-      }
-
       if (!userId) {
         const { data: authData } = await supabase.auth.getUser();
         userId = authData?.user?.id;
