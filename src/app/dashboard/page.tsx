@@ -1332,7 +1332,9 @@ export default function DashboardPage() {
                 className="flex items-center gap-1.5 group"
               >
                 <h1 className="text-2xl font-bold tracking-tight text-zinc-900 flex items-center gap-1.5">
-                  {profile?.families?.name || '가족 선택'}
+                  {profile?.families?.name?.includes(profile?.name) && profile?.nickname 
+                    ? profile?.families?.name.replace(profile?.name, profile?.nickname) 
+                    : (profile?.families?.name || '가족 선택')}
                   <ChevronDown className={`w-5 h-5 text-zinc-300 group-hover:text-black transition-all ${showInlineFamilies ? 'rotate-180' : ''}`} />
                 </h1>
               </button>
