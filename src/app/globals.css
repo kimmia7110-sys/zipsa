@@ -13,6 +13,7 @@
   --color-brand-white: #ffffff;
   --color-brand-gray: #f9f9f9;
   --color-brand-border: #f1f1f1;
+  --color-brand-secondary: #888888;
 }
 
 :root {
@@ -39,7 +40,7 @@ body {
 }
 
 h1, h2, h3, h4, h5, h6 {
-  font-weight: 400;
+  font-weight: 600;
   letter-spacing: -0.03em;
 }
 

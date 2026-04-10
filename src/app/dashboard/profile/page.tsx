@@ -195,14 +195,14 @@ export default function ProfilePage() {
     <main className="min-h-screen bg-white">
       {/* Header */}
       <nav className="flex justify-between items-center px-6 py-8">
-        <button onClick={() => router.back()} className="p-2 -ml-2 text-zinc-400 hover:text-black transition-colors">
+        <button onClick={() => router.back()} className="p-2 -ml-2 text-[#888888] hover:text-[#1A1A1A] transition-colors">
           <ArrowLeft size={20} />
         </button>
-        <h1 className="text-sm font-bold tracking-widest uppercase">나의 정보 수정</h1>
+        <h1 className="text-sm font-semibold tracking-widest uppercase">나의 정보 수정</h1>
         <button 
           onClick={handleUpdate}
           disabled={isSubmitting}
-          className="p-2 -mr-2 text-black hover:opacity-50 transition-all font-bold text-xs uppercase tracking-widest"
+          className="p-2 -mr-2 text-[#1A1A1A] hover:opacity-50 transition-all font-semibold text-xs uppercase tracking-widest"
         >
           {isSubmitting ? "저장 중..." : "완료"}
         </button>
@@ -216,7 +216,7 @@ export default function ProfilePage() {
                {formData.avatar_url ? (
                  <img src={formData.avatar_url} alt="Profile" className="w-full h-full object-cover" />
                ) : (
-                 <span className="text-2xl font-light text-zinc-300 uppercase">{formData.nickname?.[0] || formData.name?.[0] || "?"}</span>
+                 <span className="text-2xl font-light text-[#1A1A1A] uppercase">{formData.nickname?.[0] || formData.name?.[0] || "?"}</span>
                )}
             </div>
             <button 
@@ -236,14 +236,14 @@ export default function ProfilePage() {
           <div className="flex items-center gap-4">
             <button 
               onClick={() => fileInputRef.current?.click()}
-              className="text-[10px] text-zinc-400 uppercase tracking-widest hover:text-black transition-colors font-bold"
+              className="text-[10px] text-[#888888] uppercase tracking-widest hover:text-[#1A1A1A] transition-colors font-semibold"
             >
               프로필 사진 변경
             </button>
             <div className="w-[1px] h-2 bg-zinc-100" />
             <button 
               onClick={handleRemovePhoto}
-              className="text-[10px] text-zinc-400 uppercase tracking-widest hover:text-red-500 transition-colors font-bold"
+              className="text-[10px] text-[#888888] uppercase tracking-widest hover:text-red-500 transition-colors font-semibold"
             >
               삭제
             </button>
@@ -253,7 +253,7 @@ export default function ProfilePage() {
         {/* Form Fields */}
         <div className="space-y-10">
           <div className="space-y-1.5">
-            <label className="text-[10px] text-zinc-400 uppercase tracking-widest pl-1 font-mono">실명</label>
+            <label className="text-[10px] text-[#888888] uppercase tracking-widest pl-1 font-mono">실명</label>
             <input 
               type="text"
               placeholder="본인의 성함을 입력해주세요"
@@ -264,7 +264,7 @@ export default function ProfilePage() {
           </div>
 
           <div className="space-y-1.5">
-            <label className="text-[10px] text-zinc-400 uppercase tracking-widest pl-1 font-mono">닉네임</label>
+            <label className="text-[10px] text-[#888888] uppercase tracking-widest pl-1 font-mono">닉네임</label>
             <input 
               type="text"
               placeholder="활동할 닉네임을 입력해주세요"
@@ -275,7 +275,7 @@ export default function ProfilePage() {
           </div>
 
           <div className="space-y-1.5">
-            <label className="text-[10px] text-zinc-400 uppercase tracking-widest pl-1 font-mono">전화번호</label>
+            <label className="text-[10px] text-[#888888] uppercase tracking-widest pl-1 font-mono">전화번호</label>
             <input 
               type="text"
               placeholder="010-0000-0000"
@@ -286,14 +286,14 @@ export default function ProfilePage() {
           </div>
 
           <div className="space-y-4">
-            <label className="text-[10px] text-zinc-400 uppercase tracking-widest pl-1 font-mono">성별</label>
+            <label className="text-[10px] text-[#888888] uppercase tracking-widest pl-1 font-mono">성별</label>
             <div className="grid grid-cols-2 gap-3">
               {["남성", "여성"].map((g) => (
                 <button
                   key={g}
                   onClick={() => setFormData({ ...formData, gender: g })}
                   className={`py-4 rounded-2xl text-xs font-semibold border transition-all ${
-                    formData.gender === g ? "border-black bg-black text-white" : "border-zinc-100 text-zinc-400"
+                    formData.gender === g ? "border-black bg-black text-white" : "border-zinc-100 text-[#888888]"
                   }`}
                 >
                   {g}
@@ -303,7 +303,7 @@ export default function ProfilePage() {
           </div>
 
           <div className="space-y-1.5">
-            <label className="text-[10px] text-zinc-400 uppercase tracking-widest pl-1 font-mono">주소</label>
+            <label className="text-[10px] text-[#888888] uppercase tracking-widest pl-1 font-mono">주소</label>
             <input 
               type="text"
               placeholder="주 거주지를 입력해주세요"
@@ -317,7 +317,7 @@ export default function ProfilePage() {
         <button
           onClick={handleUpdate}
           disabled={isSubmitting}
-          className="w-full py-5 bg-black text-white rounded-2xl font-bold text-sm shadow-2xl shadow-black/10 hover:shadow-black/20 transition-all active:scale-[0.98] disabled:bg-zinc-100"
+          className="w-full py-5 bg-black text-white rounded-2xl font-semibold text-sm shadow-2xl shadow-black/10 hover:shadow-black/20 transition-all active:scale-[0.98] disabled:bg-zinc-100"
         >
           {isSubmitting ? "업데이트 중..." : "정보 수정 완료"}
         </button>
