@@ -104,31 +104,11 @@ export default function DashboardPage() {
   const fetchData = async () => {
     try {
       setLoading(true);
-      const isMasterMode = typeof window !== 'undefined' && localStorage.getItem("zipsa_master_mode") === "true";
-      let user: any = null;
-      
       const { data: authData } = await supabase.auth.getUser();
-      user = authData?.user;
-
-      // [마스터 인증 추월]
-      if (!user && isMasterMode) {
-        const { data: targetProfile } = await supabase
-          .from("profiles")
-          .select("id, email")
-          .in("email", ["kimmia7110@gmail.com", "kijj7110@gmail.com"])
-          .limit(1)
-          .maybeSingle();
-        
-        if (targetProfile) {
-          user = { id: targetProfile.id, email: targetProfile.email };
-        } else {
-          const { data: anyProfile } = await supabase.from("profiles").select("id").limit(1).maybeSingle();
-          if (anyProfile) user = { id: anyProfile.id, email: "master@dev.local" };
-        }
-      }
+      const user = authData?.user;
 
       if (!user) {
-        console.warn("No user session found.");
+        router.push("/");
         return;
       }
 
@@ -139,47 +119,12 @@ export default function DashboardPage() {
         .eq("id", user.id)
         .maybeSingle();
       
-      // [마스터 구제책] DB 조회 실패해도 정보를 만들어줍니다.
-      if (isMasterMode && (!profileData || profileError)) {
-        profileData = {
-          id: user.id,
-          name: "김민정",
-          nickname: "민정님",
-          email: user.email || "kimmia7110@gmail.com",
-          phone: "010-0000-0000",
-          gender: "여성",
-          address: "서울특별시",
-          families: profileData?.families || null
-        };
-        profileError = null;
-      }
-
       if (profileError) {
         console.error("Dashboard Profile Fetch Error:", JSON.stringify(profileError, null, 2));
-        // [마스터 구제책] 에러가 나더라도 마스터 모드라면 중단하지 않고 기본값으로 진행합니다.
-        if (isMasterMode) {
-          profileData = {
-            id: user.id,
-            name: "김민정",
-            nickname: "민정님",
-            email: user.email || "kimmia7110@gmail.com",
-            phone: "010-0000-0000",
-            gender: "여성",
-            address: "서울특별시",
-            families: null
-          };
-        } else {
-          throw new Error(profileError.message || "프로필 정보를 가져오는데 실패했습니다.");
-        }
+        throw new Error(profileError.message || "프로필 정보를 가져오는데 실패했습니다.");
       }
 
       if (profileData) {
-        // Fallback defaults for missing fields in master mode
-        if (isMasterMode) {
-          if (!profileData.name) profileData.name = "김민정";
-          if (!profileData.nickname) profileData.nickname = "민정님";
-        }
-
         setProfile(profileData);
         setProfileDraft({ nickname: profileData?.nickname || '', phone: profileData?.phone || '' });
         setFamilyDraftName(profileData?.families?.name || '');
@@ -561,27 +506,7 @@ export default function DashboardPage() {
 
   const fetchMyFamilies = async () => {
     try {
-      const isMasterMode = localStorage.getItem("zipsa_master_mode") === "true";
-      let user: any = null;
-      const { data: authData } = await supabase.auth.getUser();
-      user = authData?.user;
-
-      if (!user && isMasterMode) {
-        const { data: targetProfile } = await supabase
-          .from("profiles")
-          .select("id")
-          .in("email", ["kimmia7110@gmail.com", "kijj7110@gmail.com"])
-          .limit(1)
-          .maybeSingle();
-        
-        if (targetProfile) {
-          user = { id: targetProfile.id };
-        } else {
-          const { data: anyProfile } = await supabase.from("profiles").select("id").limit(1).single();
-          if (anyProfile) user = { id: anyProfile.id };
-        }
-      }
-
+      const { data: { user } } = await supabase.auth.getUser();
       if (!user) return;
       const { data, error } = await supabase.from('families').select('id, name, invite_code, created_by');
       if (error) throw error;
@@ -646,27 +571,7 @@ export default function DashboardPage() {
   const handleUpdateProfile = async () => {
     try {
       setIsSubmitting(true);
-      const isMasterMode = localStorage.getItem("zipsa_master_mode") === "true";
-      let user: any = null;
-      const { data: authData } = await supabase.auth.getUser();
-      user = authData?.user;
-
-      if (!user && isMasterMode) {
-        const { data: targetProfile } = await supabase
-          .from("profiles")
-          .select("id")
-          .in("email", ["kimmia7110@gmail.com", "kijj7110@gmail.com"])
-          .limit(1)
-          .maybeSingle();
-        
-        if (targetProfile) {
-          user = { id: targetProfile.id };
-        } else {
-          const { data: anyProfile } = await supabase.from("profiles").select("id").limit(1).single();
-          if (anyProfile) user = { id: anyProfile.id };
-        }
-      }
-
+      const { data: { user } } = await supabase.auth.getUser();
       if (!user) return;
       if (!profileDraft.nickname.trim()) {
         alert("닉네임을 입력해주세요. 데이터 유실 방지를 위해 저장이 중단되었습니다.");
@@ -696,12 +601,7 @@ export default function DashboardPage() {
     if (!profile?.family_id || !familyDraftName.trim()) return;
     setIsSubmitting(true);
     try {
-      const isMasterMode = localStorage.getItem("zipsa_master_mode") === "true";
-      let user: any = null;
-      const { data: authData } = await supabase.auth.getUser();
-      user = authData?.user;
-
-      if (!user && isMasterMode) user = { id: profile.id }; 
+      const { data: { user } } = await supabase.auth.getUser();
       if (!user) return;
       const { error } = await supabase
         .from('families')
