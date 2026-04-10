@@ -1,15 +1,24 @@
 @import "tailwindcss";
+@import url('https://cdn.jsdelivr.net/gh/orioncactus/pretendard/dist/web/static/pretendard.css');
+
+@font-face {
+    font-family: 'DungGeunMo';
+    src: url('https://cdn.jsdelivr.net/gh/projectnoonnu/noonfonts_six@1.2/DungGeunMo.woff') format('woff');
+    font-weight: normal;
+    font-style: normal;
+}
 
 @theme {
-  --color-brand-black: #000000;
+  --color-brand-black: #1A1A1A;
   --color-brand-white: #ffffff;
-  --color-brand-gray: #f5f5f5;
-  --color-brand-border: #e5e5e5;
+  --color-brand-gray: #f9f9f9;
+  --color-brand-border: #f1f1f1;
 }
 
 :root {
   --background: #ffffff;
-  --foreground: #000000;
+  --foreground: #1A1A1A;
+  --text-secondary: #888888;
 }
 
 html,
@@ -21,9 +30,21 @@ body {
 }
 
 body {
-  font-family: var(--font-geist-sans), system-ui, sans-serif;
+  font-family: 'Pretendard', var(--font-inter), var(--font-geist-sans), system-ui, sans-serif;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
+  line-height: 1.6;
+  letter-spacing: -0.02em;
+  font-weight: 300;
+}
+
+h1, h2, h3, h4, h5, h6 {
+  font-weight: 400;
+  letter-spacing: -0.03em;
+}
+
+.font-pixel {
+  font-family: 'DungGeunMo', monospace;
 }
 
 input {
@@ -32,15 +53,19 @@ input {
 
 /* 29CM Style minimalism */
 .btn-black {
-  @apply bg-black text-white px-8 py-3 text-sm font-medium transition-all hover:bg-zinc-800 active:scale-[0.98];
+  @apply bg-[#1A1A1A] text-white px-8 py-4 text-[12px] font-semibold tracking-widest uppercase transition-all hover:bg-black active:scale-[0.98] rounded-none;
 }
 
 .input-minimal {
-  @apply w-full border-b border-zinc-200 py-3 text-sm focus:border-black transition-colors bg-transparent;
+  @apply w-full border-b border-zinc-100 py-4 text-sm font-light focus:border-black transition-colors bg-transparent placeholder:text-zinc-200;
 }
 
 .label-minimal {
-  @apply text-[10px] uppercase tracking-widest text-zinc-400 mb-1 block font-semibold;
+  @apply text-[10px] uppercase tracking-widest text-[#888888] mb-2 block font-medium;
+}
+
+.text-secondary {
+  color: var(--text-secondary);
 }
 
 /* Custom Scrollbar for cleaner UI */
