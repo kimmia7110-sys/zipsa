@@ -78,6 +78,29 @@ export default function DashboardPage() {
     fetchData();
   }, []);
 
+  useEffect(() => {
+    if (selectedPetId) {
+      fetchActivities();
+    }
+  }, [selectedPetId]);
+
+  const fetchActivities = async () => {
+    if (!selectedPetId) return;
+    try {
+      const { data, error } = await supabase
+        .from("activities")
+        .select("*, pets(name), profiles(nickname)")
+        .eq("pet_id", selectedPetId)
+        .order("timestamp", { ascending: false })
+        .limit(30);
+
+      if (error) throw error;
+      setActivities((data as unknown as Activity[]) || []);
+    } catch (error: any) {
+      console.error("Error fetching activities:", error.message);
+    }
+  };
+
   const fetchData = async () => {
     try {
       setLoading(true);
@@ -192,15 +215,20 @@ export default function DashboardPage() {
             }
 
             // Fetch activities
-            const { data: activityData, error: activityError } = await supabase
+            let activityQuery = supabase
               .from("activities")
               .select("*, pets(name), profiles(nickname)")
-              .eq("pet_id", selectedPetId || '') // Only filter if ID exists
               .order("timestamp", { ascending: false })
               .limit(30);
 
+            if (selectedPetId) {
+              activityQuery = activityQuery.eq("pet_id", selectedPetId);
+            }
+
+            const { data: activityData, error: activityError } = await activityQuery;
+
             if (activityError) {
-              console.error("Dashboard Activity Fetch Error:", activityError.message);
+              console.error("Dashboard Activity Fetch Error:", JSON.stringify(activityError, null, 2));
             } else {
               setActivities((activityData as unknown as Activity[]) || []);
             }
@@ -1471,41 +1499,7 @@ export default function DashboardPage() {
             </div>
           </div>
         )}
-        {/* Quick Activity Section */}
-        <section className="space-y-8">
-          <h3 className="text-xs tracking-widest text-zinc-900 uppercase font-semibold">🗒️오늘 하루를 기록해주세요!</h3>
-          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 gap-4">
-            {((): string[] => {
-              const selectedPet = pets.find(p => p.id === selectedPetId);
-              const species = (selectedPet?.species || '').toLowerCase().trim();
-              const isCat = species.includes('고양이');
-              const isHamster = species.includes('햄스터');
-              const isSmallAnimal = species.includes('페럿') || species.includes('토끼') || species.includes('새');
-              
-              const activityLabel = isHamster ? '운동시키기' : isSmallAnimal ? '자유시간주기' : (isCat ? '사냥놀이하기' : '산책하기');
-              
-              return ['밥 먹이기', activityLabel, '약 먹이기', '간식 먹이기', '기타'];
-            })().map((type) => (
-              <button
-                key={type}
-                onClick={() => {
-                  setRecordingType(type);
-                  setRecordStep(1);
-                  setRecordData({ type: '', amountValue: '', amountUnit: 'g', memo: '', duration: '', mood: '' });
-                }}
-                className="group border border-zinc-100 p-6 space-y-4 hover:border-black transition-all text-left"
-              >
-                <div className="w-8 h-8 bg-zinc-50 rounded-full flex items-center justify-center group-hover:bg-black group-hover:text-white transition-colors">
-                  <span className="text-[10px] font-bold">+</span>
-                </div>
-                <div className="space-y-1">
-                  <p className="text-xs font-semibold">{type}</p>
-                  <p className="text-[9px] text-zinc-300 uppercase tracking-tighter">Quick Record</p>
-                </div>
-              </button>
-            ))}
-          </div>
-        </section>
+
       </div>
     </main>
   );
