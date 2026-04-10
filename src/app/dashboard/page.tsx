@@ -1076,6 +1076,11 @@ export default function DashboardPage() {
               <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"><rect width="20" height="16" x="2" y="4" rx="2"/><path d="m22 7-8.97 5.7a1.94 1.94 0 0 1-2.06 0L2 7"/></svg>
             </button>
           </div>
+          {profile?.role === 'admin' && (
+            <Link href="/dashboard/admin" className="text-[10px] tracking-widest text-zinc-400 uppercase hover:text-black transition-colors">
+              Admin
+            </Link>
+          )}
           <div className="relative h-8 flex items-center">
             <button onClick={() => { setIsMyPageOpen(!isMyPageOpen); setActiveMyPageTab('root'); }} className={`text-[10px] tracking-[0.2em] uppercase transition-colors leading-none ${isMyPageOpen ? 'text-black font-bold' : 'text-zinc-400 hover:text-black'}`}>마이페이지</button>
             <AnimatePresence>
