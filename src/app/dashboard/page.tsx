@@ -34,6 +34,7 @@ interface Pet {
 interface Activity {
   id: string;
   pet_id: string;
+  user_id: string;
   type: string;
   details: string;
   timestamp: string;
@@ -1133,7 +1134,7 @@ export default function DashboardPage() {
                             className="w-full text-left p-2.5 rounded-xl hover:bg-zinc-50 transition-all flex justify-between items-center group"
                           >
                             <div className="flex flex-col">
-                              <span className="text-[10px] font-bold">{profile?.nickname || profile?.name}</span>
+                              <span className="text-[10px] font-bold">{profile?.nickname || profile?.name || '사용자'}</span>
                               <span className="text-[8px] text-zinc-400">나의 정보 수정</span>
                             </div>
                             <ChevronRight className="w-3 h-3 text-zinc-300 group-hover:text-black transition-colors" />
@@ -1332,8 +1333,8 @@ export default function DashboardPage() {
                 className="flex items-center gap-1.5 group"
               >
                 <h1 className="text-2xl font-bold tracking-tight text-zinc-900 flex items-center gap-1.5">
-                  {profile?.families?.name?.includes(profile?.name) && profile?.nickname 
-                    ? profile?.families?.name.replace(profile?.name, profile?.nickname) 
+                  {profile?.families?.name && profile?.name && profile?.nickname && profile.families.name.includes(profile.name)
+                    ? profile.families.name.replace(profile.name, profile.nickname)
                     : (profile?.families?.name || '가족 선택')}
                   <ChevronDown className={`w-5 h-5 text-zinc-300 group-hover:text-black transition-all ${showInlineFamilies ? 'rotate-180' : ''}`} />
                 </h1>
@@ -1368,7 +1369,11 @@ export default function DashboardPage() {
                                 }`}
                               >
                                 <div>
-                                  <p className="text-[11px] font-bold">{fam.name}</p>
+                                  <p className="text-[11px] font-bold">
+                                    {fam.name && profile?.name && profile?.nickname && fam.name.includes(profile.name)
+                                      ? fam.name.replace(profile.name, profile.nickname)
+                                      : fam.name}
+                                  </p>
                                   <p className={`text-[9px] font-mono mt-0.5 ${fam.id === profile?.family_id ? 'text-zinc-400' : 'text-zinc-300'}`}>
                                     CODE: {fam.invite_code}
                                   </p>
