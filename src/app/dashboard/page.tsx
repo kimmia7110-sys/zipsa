@@ -1924,7 +1924,7 @@ export default function DashboardPage() {
             <div className="bg-white w-full max-w-[400px] rounded-3xl p-8 space-y-8 animate-in zoom-in-95 duration-300 shadow-2xl">
               <div className="space-y-2">
                 <span className="text-[10px] tracking-widest text-zinc-400 uppercase font-mono">기록 수정 — {editingActivity.type}</span>
-                <h2 className="text-xl font-light tracking-tight">{editingActivity.pets.name}의 기록을 수정합니다</h2>
+                <h2 className="text-xl font-light tracking-tight">{editingActivity.pets?.name}의 기록을 수정합니다</h2>
               </div>
               
               {editingActivity.type === '밥 먹이기' ? (
