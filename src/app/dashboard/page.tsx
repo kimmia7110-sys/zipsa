@@ -1462,8 +1462,8 @@ export default function DashboardPage() {
 
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-12">
             {/* Calendar View */}
-            <div className="bg-white border border-zinc-900 rounded-3xl p-8 shadow-2xl shadow-zinc-100/50">
-              <div className="flex items-center justify-between mb-8">
+            <div className="bg-white border border-zinc-900 rounded-3xl p-6 shadow-2xl shadow-zinc-100/50">
+              <div className="flex items-center justify-between mb-6">
                 <button onClick={() => setHistorySelectedDate(new Date(historySelectedDate.getFullYear(), historySelectedDate.getMonth() - 1))} className="p-2 hover:bg-zinc-50 rounded-full transition-colors text-zinc-300 hover:text-[#1A1A1A]">
                   <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1} d="M15 19l-7-7 7-7" /></svg>
                 </button>
@@ -1489,12 +1489,12 @@ export default function DashboardPage() {
                   
                   if (historyViewMode === 'day') {
                     return (
-                      <div className="col-span-7 py-6 flex flex-col items-center justify-center space-y-3 animate-in fade-in slide-in-from-bottom-2 duration-400">
-                        <div className="w-16 h-16 bg-[#1A1A1A] text-white rounded-2xl flex flex-col items-center justify-center shadow-xl shadow-zinc-200">
-                          <span className="text-xl font-bold font-mono tracking-tighter">{d.getDate()}</span>
-                          <span className="text-[8px] uppercase tracking-widest opacity-40 font-black">{d.toLocaleDateString('en-US', { weekday: 'short' })}</span>
+                      <div className="col-span-7 py-2 flex flex-col items-center justify-center space-y-2 animate-in fade-in slide-in-from-bottom-2 duration-400">
+                        <div className="w-12 h-12 bg-[#1A1A1A] text-white rounded-xl flex flex-col items-center justify-center shadow-lg shadow-zinc-100">
+                          <span className="text-lg font-bold font-mono tracking-tighter">{d.getDate()}</span>
+                          <span className="text-[7px] uppercase tracking-widest opacity-40 font-black">{d.toLocaleDateString('en-US', { weekday: 'short' })}</span>
                         </div>
-                        <p className="text-[9px] text-zinc-300 uppercase tracking-widest font-medium">Focused View</p>
+                        <p className="text-[7px] text-zinc-300 uppercase tracking-widest font-black">Day View</p>
                       </div>
                     );
                   }
