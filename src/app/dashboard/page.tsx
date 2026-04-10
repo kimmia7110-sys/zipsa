@@ -63,6 +63,10 @@ export default function DashboardPage() {
   const [editingActivity, setEditingActivity] = useState<Activity | null>(null);
   const [editDetails, setEditDetails] = useState("");
   const [editMealData, setEditMealData] = useState({ type: '', amountValue: '', amountUnit: 'g' });
+  const [isMyPageOpen, setIsMyPageOpen] = useState(false);
+  const [familyMembers, setFamilyMembers] = useState<any[]>([]);
+  const [activeMyPageTab, setActiveMyPageTab] = useState<'root' | 'family' | 'profile'>('root');
+  const [profileDraft, setProfileDraft] = useState({ nickname: '', phone: '' });
 
   useEffect(() => {
     fetchData();
@@ -84,6 +88,7 @@ export default function DashboardPage() {
         .single();
 
       setProfile(profileData);
+      setProfileDraft({ nickname: profileData?.nickname || '', phone: profileData?.phone || '' });
 
       if (profileData?.family_id) {
         // Fetch pets
@@ -102,11 +107,21 @@ export default function DashboardPage() {
         // Fetch recent activities
         const { data: activityData } = await supabase
           .from("activities")
-          .select("*, pets(name)")
+          .select("*, pets(name), profiles(nickname)")
           .order("timestamp", { ascending: false })
           .limit(30);
 
-        setActivities((activityData as unknown as Activity[]) || []);
+        setActivities((activityData as unknown as (Activity & { profiles: { nickname: string } })[]) || []);
+
+        // Fetch family members
+        const { data: membersData } = await supabase
+          .from("profiles")
+          .select("id, name, nickname")
+          .eq("family_id", profileData.family_id);
+        
+        if (membersData) {
+          setFamilyMembers(membersData);
+        }
       }
     } catch (error) {
       console.error("Error fetching data:", error);
@@ -215,11 +230,12 @@ export default function DashboardPage() {
         .from('activities')
         .insert([{
           pet_id: selectedPetId,
+          user_id: user.id,
           type: recordingType,
           details: details,
           timestamp: new Date().toISOString()
         }])
-        .select('*, pets(name)');
+        .select('*, pets(name), profiles(nickname)');
 
       const familyPromise = supabase
         .from('families')
@@ -293,6 +309,32 @@ export default function DashboardPage() {
       setEditingActivity(null);
     }
     setIsSubmitting(false);
+  };
+
+  const handleUpdateProfile = async () => {
+    try {
+      setIsSubmitting(true);
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) return;
+
+      const { error } = await supabase
+        .from("profiles")
+        .update({
+          nickname: profileDraft.nickname,
+          phone: profileDraft.phone
+        })
+        .eq("id", user.id);
+
+      if (error) throw error;
+      
+      setProfile({ ...profile, nickname: profileDraft.nickname, phone: profileDraft.phone });
+      setIsMyPageOpen(false);
+      alert("정보가 수정되었습니다.");
+    } catch (error: any) {
+      alert("수정 중 오류가 발생했습니다: " + error.message);
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   const handleLogout = async () => {
@@ -828,7 +870,7 @@ export default function DashboardPage() {
       {/* Top Navigation */}
       <nav className="flex justify-between items-center px-6 py-8">
         <Link href="/dashboard" className="text-xl font-light tracking-tighter">집착</Link>
-        <div className="flex items-center gap-6">
+        <div className="flex items-center gap-6 relative">
           <div className="flex items-center gap-4 pr-4 border-r border-zinc-100">
             <button className="text-zinc-200 hover:text-black transition-colors relative">
               <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"><path d="M6 8a6 6 0 0 1 12 0c0 7 3 9 3 9H3s3-2 3-9"/><path d="M10.3 21a1.94 1.94 0 0 0 3.4 0"/></svg>
@@ -838,12 +880,145 @@ export default function DashboardPage() {
               <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"><rect width="20" height="16" x="2" y="4" rx="2"/><path d="m22 7-8.97 5.7a1.94 1.94 0 0 1-2.06 0L2 7"/></svg>
             </button>
           </div>
-          <Link
-            href="/dashboard/profile"
-            className="text-[10px] tracking-widest text-zinc-400 uppercase hover:text-black transition-colors"
-          >
-            마이페이지
-          </Link>
+          
+          <div className="relative">
+            <button
+              onClick={() => {
+                setIsMyPageOpen(!isMyPageOpen);
+                setActiveMyPageTab('root');
+              }}
+              className={`text-[10px] tracking-widest uppercase transition-colors ${isMyPageOpen ? 'text-black font-bold' : 'text-zinc-400 hover:text-black'}`}
+            >
+              마이페이지
+            </button>
+
+            {/* My Page Dropdown */}
+            <AnimatePresence>
+              {isMyPageOpen && (
+                <>
+                  <div 
+                    className="fixed inset-0 z-[60]" 
+                    onClick={() => setIsMyPageOpen(false)} 
+                  />
+                  <motion.div 
+                    initial={{ opacity: 0, y: 5, scale: 0.98 }}
+                    animate={{ opacity: 1, y: 0, scale: 1 }}
+                    exit={{ opacity: 0, y: 5, scale: 0.98 }}
+                    transition={{ duration: 0.15, ease: "easeOut" }}
+                    className="absolute top-full right-0 mt-2 w-[180px] bg-white z-[70] shadow-[0_10px_40px_rgba(0,0,0,0.08)] rounded-2xl border border-zinc-100 overflow-hidden"
+                  >
+                    <div className="p-1.5">
+                      {activeMyPageTab === 'root' ? (
+                        <div className="space-y-0.5">
+                          <Link 
+                            href="/dashboard/profile"
+                            className="w-full text-left p-2.5 rounded-xl hover:bg-zinc-50 transition-all flex justify-between items-center group"
+                          >
+                            <div className="flex flex-col">
+                              <span className="text-[10px] font-bold">{profile?.nickname || profile?.name}</span>
+                              <span className="text-[8px] text-zinc-400">나의 정보 수정</span>
+                            </div>
+                            <ChevronRight className="w-3 h-3 text-zinc-300 group-hover:text-black transition-colors" />
+                          </Link>
+                          <div className="my-1.5 border-t border-zinc-50" />
+                          <button 
+                            onClick={() => setActiveMyPageTab('family')}
+                            className="w-full text-left p-2.5 rounded-xl hover:bg-zinc-50 transition-all flex justify-between items-center group"
+                          >
+                            <span className="text-[10px] font-semibold">나의 가족</span>
+                            <ChevronRight className="w-3 h-3 text-zinc-300 group-hover:text-black transition-colors" />
+                          </button>
+                          <Link href="/dashboard/edit-pet" className="block w-full text-left p-2.5 rounded-xl hover:bg-zinc-50 transition-all flex justify-between items-center group">
+                            <span className="text-[10px] font-semibold">아이 관리</span>
+                            <ChevronRight className="w-3 h-3 text-zinc-300 group-hover:text-black transition-colors" />
+                          </Link>
+                          <div className="my-1.5 border-t border-zinc-50" />
+                          <button 
+                            onClick={handleLogout}
+                            className="w-full text-left p-2.5 rounded-xl hover:bg-zinc-50 transition-all text-red-500 text-[10px] font-semibold"
+                          >
+                            로그아웃
+                          </button>
+                        </div>
+                      ) : activeMyPageTab === 'profile' ? (
+                        <div className="p-1.5 space-y-4 animate-in fade-in slide-in-from-right-1 duration-200">
+                          <div className="flex items-center gap-2 mb-1 px-1">
+                            <button onClick={() => setActiveMyPageTab('root')} className="p-1 text-zinc-400 hover:text-black">
+                              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><path d="M15 18l-6-6 6-6"/></svg>
+                            </button>
+                            <span className="text-[10px] font-bold uppercase tracking-tight">나의 정보 수정</span>
+                          </div>
+                          
+                          <div className="space-y-3 px-1">
+                            <div className="space-y-1">
+                              <label className="text-[8px] text-zinc-400 uppercase tracking-widest pl-1 font-mono">Nickname</label>
+                              <input 
+                                type="text"
+                                className="w-full p-2.5 bg-zinc-50 rounded-xl text-[10px] focus:ring-0 focus:border-black border-transparent transition-all"
+                                value={profileDraft.nickname}
+                                onChange={(e) => setProfileDraft({ ...profileDraft, nickname: e.target.value })}
+                              />
+                            </div>
+                            <div className="space-y-1">
+                              <label className="text-[8px] text-zinc-400 uppercase tracking-widest pl-1 font-mono">Phone</label>
+                              <input 
+                                type="text"
+                                className="w-full p-2.5 bg-zinc-50 rounded-xl text-[10px] focus:ring-0 focus:border-black border-transparent transition-all"
+                                value={profileDraft.phone}
+                                onChange={(e) => setProfileDraft({ ...profileDraft, phone: e.target.value })}
+                              />
+                            </div>
+                            <button 
+                              disabled={isSubmitting}
+                              onClick={handleUpdateProfile}
+                              className="w-full py-3 bg-black text-white rounded-xl text-[10px] font-bold mt-2 disabled:bg-zinc-200"
+                            >
+                              저장하기
+                            </button>
+                          </div>
+                        </div>
+                      ) : (
+                        <div className="p-1.5 space-y-3 animate-in fade-in slide-in-from-right-1 duration-200">
+                          <div className="flex items-center gap-2 mb-1 px-1">
+                            <button onClick={() => setActiveMyPageTab('root')} className="p-1 -ml-1 text-zinc-400 hover:text-black">
+                              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><path d="M15 18l-6-6 6-6"/></svg>
+                            </button>
+                            <span className="text-[10px] font-bold uppercase tracking-tight">Family members</span>
+                          </div>
+
+                          <div className="space-y-2.5">
+                            <div className="p-2.5 bg-zinc-50 rounded-xl space-y-0.5">
+                              <span className="text-[7px] text-zinc-400 uppercase tracking-widest font-mono">Code</span>
+                              <p className="text-[10px] font-mono font-bold text-zinc-900">{profile?.families?.invite_code}</p>
+                            </div>
+
+                            <div className="space-y-1 max-h-[160px] overflow-y-auto pr-1 custom-scrollbar">
+                              {familyMembers.length > 0 ? (
+                                familyMembers.map((member: any) => (
+                                  <div key={member.id} className="flex items-center gap-2 p-2 rounded-lg border border-zinc-50 bg-white">
+                                    <div className="w-5 h-5 rounded-full bg-zinc-100 flex items-center justify-center text-[7px] font-bold text-zinc-400 overflow-hidden shrink-0">
+                                      {member.nickname?.[0] || member.name?.[0] || '?'}
+                                    </div>
+                                    <p className="text-[9px] font-semibold truncate flex-1">
+                                      {member.nickname || member.name || '이름 없음'} 
+                                      {member.id === profile?.id && <span className="text-[7px] text-zinc-300 font-normal ml-1">나</span>}
+                                    </p>
+                                  </div>
+                                ))
+                              ) : (
+                                <p className="text-[8px] text-zinc-300 text-center py-4">합류한 멤버가 없습니다</p>
+                              )}
+                            </div>
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                  </motion.div>
+                </>
+              )}
+            </AnimatePresence>
+          </div>
+
           <button
             onClick={handleLogout}
             className="text-[10px] tracking-widest text-zinc-400 uppercase hover:text-black transition-colors"
@@ -895,26 +1070,6 @@ export default function DashboardPage() {
                     <span className="text-[9px] text-zinc-400 font-mono tracking-tighter">STATUS: {family.is_hatched ? 'HATCHED' : 'WAITING'}</span>
                   </div>
 
-                  {/* The Egg of Obsession */}
-                  <motion.div
-                    key={eggVibrate}
-                    animate={eggVibrate > 0 ? {
-                      x: [0, -4, 4, -4, 4, 0],
-                      rotate: [0, -3, 3, -3, 3, 0]
-                    } : {}}
-                    transition={{ duration: 0.4 }}
-                    className="relative cursor-pointer"
-                    onClick={() => setEggVibrate(v => v + 1)}
-                  >
-                    <div className="relative w-24 h-24 sm:w-32 sm:h-32 select-none group-hover:scale-110 transition-transform duration-700">
-                      <img 
-                        src={family.is_hatched ? "https://api.iconify.design/noto-v1:paws.svg" : "/images/custom-egg.png"} 
-                        alt="Zipsa Egg"
-                        className={`w-full h-full object-contain ${!family.is_hatched ? 'drop-shadow-2xl' : ''}`}
-                      />
-                    </div>
-                    <div className="absolute inset-0 bg-zinc-400/5 blur-3xl rounded-full scale-150 -z-10" />
-                  </motion.div>
 
                   <div className="absolute bottom-6 left-8 right-8 flex justify-between items-end">
                     <div className="space-y-4 w-full max-w-[140px]">
@@ -988,19 +1143,19 @@ export default function DashboardPage() {
             </Link>
           </div>
 
-          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-6">
+          <div className="flex overflow-x-auto gap-4 py-2 pb-8 snap-x no-scrollbar -mx-6 px-6">
             {pets.map((pet) => (
               <div 
                 key={pet.id} 
                 onClick={() => setSelectedPetId(pet.id)}
-                className={`group space-y-3 cursor-pointer p-2 rounded-xl transition-all ${selectedPetId === pet.id ? 'bg-zinc-50 ring-1 ring-black' : 'hover:bg-zinc-50'}`}
+                className={`group shrink-0 w-[120px] snap-start space-y-2 cursor-pointer p-2 rounded-2xl transition-all ${selectedPetId === pet.id ? 'bg-zinc-50 ring-1 ring-black ring-offset-2' : 'hover:bg-zinc-50'}`}
               >
                 <div className="aspect-square bg-white border border-zinc-100 flex items-center justify-center rounded-xl overflow-hidden transition-colors">
                   {pet.photo_url ? (
                     <img src={pet.photo_url} alt={pet.name} className="w-full h-full object-cover transition-all duration-500" />
                   ) : (
                     <div className="w-full h-full bg-zinc-50 flex items-center justify-center">
-                      <div className="w-12 h-12 text-zinc-200">
+                      <div className="w-8 h-8 text-zinc-200">
                         {pet.species?.includes('고양이') ? (
                           <svg viewBox="0 0 24 24" fill="currentColor" xmlns="http://www.w3.org/2000/svg">
                             <path d="M12 2C10.5 2 9.17 2.48 8.08 3.28L6.44 2.1C6.26 1.97 6 1.97 5.82 2.1C5.64 2.23 5.59 2.47 5.71 2.66L6.96 4.67C4.64 6.34 3 9.07 3 12.2C3 17.06 6.94 21 11.8 21C16.66 21 20.6 17.06 20.6 12.2C20.6 9.07 18.96 6.34 16.64 4.67L17.89 2.66C18.02 2.47 17.97 2.23 17.78 2.1C17.6 1.97 17.34 1.97 17.16 2.1L15.52 3.28C14.43 2.48 13.11 2 11.61 2H12ZM9.5 11C10.33 11 11 11.67 11 12.5C11 13.33 10.33 14 9.5 14C8.67 14 8 13.33 8 12.5C8 11.67 8.67 11 9.5 11ZM14.5 11C15.33 11 16 11.67 16 12.5C16 13.33 15.33 14 14.5 14C13.67 14 13 13.33 13 12.5C13 11.67 13.67 11 14.5 11Z" />
@@ -1015,15 +1170,13 @@ export default function DashboardPage() {
                   )}
                 </div>
                 <div className="space-y-0.5 relative group/card">
-                  <div className="flex justify-between items-start">
-                    <div>
-                      <p className="text-xs font-semibold">{pet.name}</p>
-                      <p className="text-[10px] text-zinc-400 uppercase tracking-tighter">{pet.species}</p>
-                    </div>
+                  <p className="text-[11px] font-bold text-zinc-900 truncate">{pet.name}</p>
+                  <div className="flex justify-between items-center">
+                    <p className="text-[8px] text-zinc-400 uppercase tracking-tighter truncate w-3/4">{pet.species}</p>
                     <Link 
                       href={`/dashboard/edit-pet/${pet.id}`}
                       onClick={(e) => e.stopPropagation()}
-                      className="text-[9px] text-zinc-300 hover:text-black transition-colors"
+                      className="text-[8px] text-zinc-300 hover:text-black transition-colors"
                     >
                       수정
                     </Link>
@@ -1032,13 +1185,18 @@ export default function DashboardPage() {
               </div>
             ))}
 
+            <Link
+              href="/dashboard/add-pet"
+              className="group shrink-0 w-[120px] snap-start aspect-square border-2 border-dashed border-zinc-100 rounded-2xl flex flex-col items-center justify-center gap-2 hover:border-black transition-all bg-zinc-50/30"
+            >
+              <div className="w-8 h-8 rounded-full bg-zinc-100 flex items-center justify-center group-hover:bg-black transition-colors">
+                <span className="text-zinc-400 group-hover:text-white transition-colors">+</span>
+              </div>
+              <span className="text-[9px] text-zinc-400 uppercase tracking-widest font-semibold group-hover:text-black">Add Pet</span>
+            </Link>
+
             {pets.length === 0 && (
-              <Link
-                href="/dashboard/add-pet"
-                className="col-span-full border border-dashed border-zinc-200 aspect-[4/1] flex items-center justify-center text-[10px] text-zinc-400 uppercase tracking-widest hover:border-black hover:text-black transition-colors"
-              >
-                등록된 아이가 없습니다
-              </Link>
+              <p className="text-[10px] text-zinc-300 py-10 pl-6 uppercase tracking-widest italic">등록된 아이가 없습니다</p>
             )}
           </div>
         </section>
@@ -1137,7 +1295,12 @@ export default function DashboardPage() {
                         {activity.type[0]}
                       </div>
                       <div className="space-y-1">
-                        <p className="text-[12px] font-bold text-zinc-900">{activity.pets?.name || "아이"} — {activity.type}</p>
+                        <div className="flex items-center gap-1.5">
+                          <span className="text-[9px] font-bold px-1.5 py-0.5 bg-zinc-100 rounded text-zinc-500 uppercase tracking-tighter">
+                            {(activity as any).profiles?.nickname || '집사'}
+                          </span>
+                          <p className="text-[12px] font-bold text-zinc-900">{activity.pets?.name || "아이"} — {activity.type}</p>
+                        </div>
                         <p className="text-[11px] text-zinc-500 leading-relaxed font-normal">{activity.details || '상세 내용 없음'}</p>
                         <p className="text-[10px] text-zinc-300 font-mono pt-1">
                           {new Date(activity.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
@@ -1291,6 +1454,7 @@ export default function DashboardPage() {
             </div>
           </div>
         )}
+
       </div>
     </main>
   );

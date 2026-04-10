@@ -3,23 +3,20 @@
 import { useEffect, useState } from "react";
 import { supabase } from "@/lib/supabase";
 import { useRouter } from "next/navigation";
-import Link from "next/link";
-import { regionsData } from "@/lib/regions";
+import { motion } from "framer-motion";
+import { ArrowLeft, Camera, Check } from "lucide-react";
 
 export default function ProfilePage() {
   const router = useRouter();
   const [loading, setLoading] = useState(true);
-  const [saving, setSaving] = useState(false);
-  const [nicknameStatus, setNicknameStatus] = useState<'idle' | 'checking' | 'available' | 'taken'>('idle');
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [profile, setProfile] = useState<any>(null);
   const [formData, setFormData] = useState({
-    email: "",
     name: "",
     nickname: "",
-    phone: "--",
+    phone: "",
     gender: "",
-    address: " ",
-    inviteCode: "",
-    inputInviteCode: "",
+    address: ""
   });
 
   useEffect(() => {
@@ -27,376 +24,177 @@ export default function ProfilePage() {
   }, []);
 
   const fetchProfile = async () => {
-    const { data: { user } } = await supabase.auth.getUser();
-    if (!user) {
-      router.push("/");
-      return;
-    }
-
-    const { data: profile } = await supabase
-      .from("profiles")
-      .select("*")
-      .eq("id", user.id)
-      .single();
-
-    if (profile) {
-      // Fetch family invite code
-      const { data: family } = await supabase
-        .from("families")
-        .select("invite_code")
-        .eq("id", profile.family_id)
-        .single();
-
-      setFormData({
-        email: user.email || "",
-        name: profile.name || "",
-        nickname: profile.nickname || "",
-        phone: profile.phone || "",
-        gender: profile.gender || "",
-        address: profile.address || " ",
-        inviteCode: family?.invite_code || "코드 없음",
-        inputInviteCode: "",
-      });
-    }
-    setLoading(false);
-  };
-
-  const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
-    const { name, value } = e.target;
-    setFormData((prev) => ({ ...prev, [name]: value }));
-    if (name === 'nickname') setNicknameStatus('idle');
-  };
-
-  const checkNickname = async () => {
-    if (!formData.nickname) return;
-    setNicknameStatus('checking');
-    const { data: { user } } = await supabase.auth.getUser();
-    const { data } = await supabase
-      .from('profiles')
-      .select('nickname')
-      .eq('nickname', formData.nickname)
-      .neq('id', user?.id)
-      .maybeSingle();
-    
-    setNicknameStatus(data ? 'taken' : 'available');
-  };
-
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setSaving(true);
     try {
+      setLoading(true);
       const { data: { user } } = await supabase.auth.getUser();
-      const { error } = await supabase
+      if (!user) {
+        console.warn("User session not found.");
+        router.push("/");
+        return;
+      }
+
+      // Using a simple query to avoid any complex joins during RLS transition
+      const { data, error } = await supabase
         .from("profiles")
-        .update({
-          name: formData.name,
-          nickname: formData.nickname,
-          phone: formData.phone,
-          gender: formData.gender,
-          address: formData.address,
-        })
-        .eq("id", user?.id);
+        .select("id, name, nickname, phone, gender, address")
+        .eq("id", user.id)
+        .maybeSingle();
 
       if (error) {
-        if (error.code === "23505") throw new Error("이미 사용 중인 닉네임입니다.");
+        if (error.message?.includes("recursion")) {
+          console.error("DB Recursion still detected. Attempting cache bypass...");
+        }
         throw error;
       }
       
-      alert("프로필이 수정되었습니다.");
-      router.push("/dashboard");
+      if (data) {
+        setProfile(data);
+        setFormData({
+          name: data.name || "",
+          nickname: data.nickname || "",
+          phone: data.phone || "",
+          gender: data.gender || "",
+          address: data.address || ""
+        });
+      }
     } catch (error: any) {
-      alert(error.message || "오류가 발생했습니다.");
+      console.error("Error fetching profile:", error.message || error);
     } finally {
-      setSaving(false);
+      setLoading(false);
     }
   };
 
-  const handleCopyCode = () => {
-    navigator.clipboard.writeText(formData.inviteCode);
-    alert("초대 코드가 복사되었습니다.");
-  };
-
-  const handleJoinFamily = async () => {
-    if (!formData.inputInviteCode) return;
-    
-    setSaving(true);
+  const handleUpdate = async () => {
     try {
-      const { data: family, error: familyError } = await supabase
-        .from("families")
-        .select("id")
-        .eq("invite_code", formData.inputInviteCode.toUpperCase())
-        .maybeSingle();
-
-      if (familyError || !family) {
-        throw new Error("유효하지 않은 초대 코드입니다.");
-      }
-
+      setIsSubmitting(true);
       const { data: { user } } = await supabase.auth.getUser();
-      const { error: updateError } = await supabase
+      if (!user) return;
+
+      const { error } = await supabase
         .from("profiles")
-        .update({ family_id: family.id })
-        .eq("id", user?.id);
+        .update(formData)
+        .eq("id", user.id);
 
-      if (updateError) throw updateError;
-
-      alert("가족에 합류하셨습니다!");
-      fetchProfile(); // Refresh profile and invitation code
+      if (error) throw error;
+      alert("성공적으로 수정되었습니다!");
+      router.push("/dashboard");
     } catch (error: any) {
-      alert(error.message || "오류가 발생했습니다.");
+      alert("수정 중 오류가 발생했습니다: " + error.message);
     } finally {
-      setSaving(false);
+      setIsSubmitting(false);
     }
   };
 
   if (loading) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-white">
-        <p className="text-xs tracking-[0.2em] font-light animate-pulse uppercase">로딩 중...</p>
+      <div className="min-h-screen bg-white flex items-center justify-center">
+        <div className="w-8 h-8 border-2 border-zinc-100 border-t-black rounded-full animate-spin" />
       </div>
     );
   }
 
-  const selectedRegion = formData.address.split(" ")[0] || "";
-  const subCities = regionsData[selectedRegion] || [];
-
   return (
-    <main className="min-h-screen bg-white flex flex-col items-center px-6 py-20 font-light">
-      <div className="w-full max-w-[400px] space-y-16">
-        <header className="space-y-4">
-          <Link href="/dashboard" className="text-[10px] tracking-widest text-zinc-400 uppercase hover:text-black transition-colors">
-            ← 대시보드로 돌아가기
-          </Link>
-          <div className="pt-4">
-            <h1 className="text-3xl font-light tracking-tighter">마이페이지</h1>
-            <p className="text-sm text-zinc-400 mt-2 leading-relaxed">회원 정보 및 프로필을 수정할 수 있습니다.</p>
+    <main className="min-h-screen bg-white">
+      {/* Header */}
+      <nav className="flex justify-between items-center px-6 py-8">
+        <button onClick={() => router.back()} className="p-2 -ml-2 text-zinc-400 hover:text-black transition-colors">
+          <ArrowLeft size={20} />
+        </button>
+        <h1 className="text-sm font-bold tracking-widest uppercase">나의 정보 수정</h1>
+        <button 
+          onClick={handleUpdate}
+          disabled={isSubmitting}
+          className="p-2 -mr-2 text-black hover:opacity-50 transition-all font-bold text-xs uppercase tracking-widest"
+        >
+          {isSubmitting ? "Saving..." : "Done"}
+        </button>
+      </nav>
+
+      <div className="max-w-[500px] mx-auto px-6 py-8 space-y-12 pb-32">
+        {/* Avatar Section */}
+        <div className="flex flex-col items-center gap-4">
+          <div className="relative group">
+            <div className="w-24 h-24 rounded-full bg-zinc-50 border border-zinc-100 flex items-center justify-center overflow-hidden">
+               <span className="text-2xl font-light text-zinc-300 uppercase">{formData.nickname?.[0] || formData.name?.[0] || "?"}</span>
+            </div>
+            <button className="absolute bottom-0 right-0 w-8 h-8 bg-black text-white rounded-full flex items-center justify-center shadow-lg hover:scale-110 transition-transform">
+              <Camera size={14} />
+            </button>
           </div>
-        </header>
+          <p className="text-[10px] text-zinc-400 uppercase tracking-widest">프로필 사진 변경</p>
+        </div>
 
-        <form onSubmit={handleSubmit} className="space-y-12">
-          <div className="space-y-10">
-            {/* Account Info */}
-            <div className="group">
-              <h3 className="text-lg font-normal text-black mb-6 tracking-tight">계정 정보</h3>
-              <div className="group">
-                <label className="label-minimal">이메일</label>
-                <input
-                  type="email"
-                  value={formData.email}
-                  readOnly
-                  className="input-minimal opacity-50 cursor-not-allowed"
-                />
-              </div>
-            </div>
+        {/* Form Fields */}
+        <div className="space-y-10">
+          <div className="space-y-1.5">
+            <label className="text-[10px] text-zinc-400 uppercase tracking-widest pl-1 font-mono">Real Name</label>
+            <input 
+              type="text"
+              placeholder="본인의 성함을 입력해주세요"
+              className="w-full p-4 bg-zinc-50 rounded-2xl text-sm focus:ring-0 focus:border-black border-transparent transition-all placeholder:text-zinc-200"
+              value={formData.name}
+              onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+            />
+          </div>
 
-            {/* Profile Info */}
-            <div className="group pt-6 border-t border-zinc-100">
-              <h3 className="text-lg font-normal text-black mb-6 tracking-tight">프로필 정보</h3>
-              <div className="space-y-10 mt-4">
-                <div className="group">
-                  <label className="label-minimal">보호자 성함</label>
-                  <input
-                    type="text"
-                    name="name"
-                    required
-                    value={formData.name}
-                    onChange={handleChange}
-                    className="input-minimal"
-                  />
-                </div>
-                <div className="group">
-                  <label className="label-minimal">닉네임</label>
-                  <div className="relative">
-                    <input
-                      type="text"
-                      name="nickname"
-                      required
-                      value={formData.nickname}
-                      onChange={handleChange}
-                      onBlur={checkNickname}
-                      className="input-minimal pr-16"
-                    />
-                    <div className="absolute right-0 top-1/2 -translate-y-1/2">
-                      <button 
-                        type="button" 
-                        onClick={checkNickname}
-                        disabled={nicknameStatus === 'checking' || !formData.nickname}
-                        className="text-[9px] tracking-widest text-zinc-400 uppercase hover:text-black px-2"
-                      >
-                        {nicknameStatus === 'checking' ? '...' : 'Check'}
-                      </button>
-                    </div>
-                  </div>
-                  {nicknameStatus !== 'idle' && (
-                    <p className={`text-[10px] mt-2 ${nicknameStatus === 'available' ? 'text-zinc-900' : 'text-zinc-300'}`}>
-                      {nicknameStatus === 'available' ? "✓ 사용 가능" : "✕ 사용 불가"}
-                    </p>
-                  )}
-                </div>
+          <div className="space-y-1.5">
+            <label className="text-[10px] text-zinc-400 uppercase tracking-widest pl-1 font-mono">Nickname</label>
+            <input 
+              type="text"
+              placeholder="활동할 닉네임을 입력해주세요"
+              className="w-full p-4 bg-zinc-50 rounded-2xl text-sm focus:ring-0 focus:border-black border-transparent transition-all placeholder:text-zinc-200"
+              value={formData.nickname}
+              onChange={(e) => setFormData({ ...formData, nickname: e.target.value })}
+            />
+          </div>
 
-                <div className="group">
-                  <label className="label-minimal">연락처</label>
-                  <div className="flex items-center gap-2">
-                    <input
-                      type="tel"
-                      maxLength={3}
-                      className="input-minimal text-center flex-1"
-                      value={formData.phone.split("-")[0] || ""}
-                      onChange={(e) => {
-                        const val = e.target.value.replace(/[^0-9]/g, "");
-                        const parts = formData.phone.split("-");
-                        while (parts.length < 3) parts.push("");
-                        parts[0] = val;
-                        setFormData({ ...formData, phone: parts.join("-") });
-                      }}
-                    />
-                    <span className="text-zinc-300 text-xs">-</span>
-                    <input
-                      type="tel"
-                      maxLength={4}
-                      className="input-minimal text-center flex-1"
-                      value={formData.phone.split("-")[1] || ""}
-                      onChange={(e) => {
-                        const val = e.target.value.replace(/[^0-9]/g, "");
-                        const parts = formData.phone.split("-");
-                        while (parts.length < 3) parts.push("");
-                        parts[1] = val;
-                        setFormData({ ...formData, phone: parts.join("-") });
-                      }}
-                    />
-                    <span className="text-zinc-300 text-xs">-</span>
-                    <input
-                      type="tel"
-                      maxLength={4}
-                      className="input-minimal text-center flex-1"
-                      value={formData.phone.split("-")[2] || ""}
-                      onChange={(e) => {
-                        const val = e.target.value.replace(/[^0-9]/g, "");
-                        const parts = formData.phone.split("-");
-                        while (parts.length < 3) parts.push("");
-                        parts[2] = val;
-                        setFormData({ ...formData, phone: parts.join("-") });
-                      }}
-                    />
-                  </div>
-                </div>
+          <div className="space-y-1.5">
+            <label className="text-[10px] text-zinc-400 uppercase tracking-widest pl-1 font-mono">Phone Number</label>
+            <input 
+              type="text"
+              placeholder="010-0000-0000"
+              className="w-full p-4 bg-zinc-50 rounded-2xl text-sm focus:ring-0 focus:border-black border-transparent transition-all placeholder:text-zinc-200"
+              value={formData.phone}
+              onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
+            />
+          </div>
 
-                <div className="group">
-                  <label className="label-minimal">성별</label>
-                  <div className="flex gap-8 pt-2">
-                    {["남성", "여성"].map((option) => (
-                      <label key={option} className="flex items-center gap-2 cursor-pointer">
-                        <input
-                          type="radio"
-                          name="gender"
-                          value={option}
-                          checked={formData.gender === option}
-                          onChange={handleChange}
-                          className="w-3 h-3 border border-black rounded-full appearance-none checked:bg-black transition-all"
-                        />
-                        <span className={`text-sm ${formData.gender === option ? 'text-black' : 'text-zinc-400'}`}>
-                          {option}
-                        </span>
-                      </label>
-                    ))}
-                  </div>
-                </div>
-
-                <div className="group">
-                  <label className="label-minimal">주소</label>
-                  <div className="flex gap-2">
-                    <select
-                      required
-                      className="input-minimal flex-1 bg-transparent cursor-pointer appearance-none"
-                      value={formData.address.split(" ")[0] || ""}
-                      onChange={(e) => {
-                        const region = e.target.value;
-                        setFormData({ ...formData, address: region + " " });
-                      }}
-                    >
-                      <option value="" disabled>시/도</option>
-                      {Object.keys(regionsData).map(region => (
-                        <option key={region} value={region}>{region}</option>
-                      ))}
-                    </select>
-
-                    <select
-                      required
-                      disabled={!selectedRegion}
-                      className="input-minimal flex-1 bg-transparent cursor-pointer appearance-none"
-                      value={formData.address.split(" ")[1] || ""}
-                      onChange={(e) => {
-                        const city = e.target.value;
-                        setFormData({ ...formData, address: `${selectedRegion} ${city}` });
-                      }}
-                    >
-                      <option value="" disabled>시/군/구</option>
-                      {subCities.map((city) => (
-                        <option key={city} value={city}>{city}</option>
-                      ))}
-                    </select>
-                  </div>
-                </div>
-              </div>
-            </div>
-
-            {/* Family Connection Section */}
-            <div className="group pt-6 border-t border-zinc-100">
-              <h3 className="text-lg font-normal text-black mb-6 tracking-tight">가족 관리</h3>
-              
-              {/* Existing Family Code */}
-              <div className="bg-zinc-50 p-6 space-y-4 mb-6">
-                <label className="label-minimal text-zinc-400">나의 가족 초대 코드</label>
-                <div className="flex justify-between items-center">
-                  <span className="text-2xl font-light tracking-[0.2em]">{formData.inviteCode}</span>
-                  <button 
-                    type="button"
-                    onClick={handleCopyCode}
-                    className="text-[10px] tracking-widest text-zinc-400 uppercase hover:text-black border-b border-zinc-200 pb-0.5"
-                  >
-                    Copy
-                  </button>
-                </div>
-                <p className="text-[10px] text-zinc-400 leading-relaxed">
-                  이 코드를 가족에게 공유하여 같은 아이들을 함께 돌볼 수 있습니다.
-                </p>
-              </div>
-
-              {/* Join Family Section */}
-              <div className="border border-zinc-100 p-6 space-y-4">
-                <label className="label-minimal text-zinc-400">초대받은 코드가 있나요?</label>
-                <div className="flex gap-3">
-                  <input
-                    type="text"
-                    name="inputInviteCode"
-                    placeholder="코드 6자리 입력"
-                    className="input-minimal flex-[2] uppercase font-mono tracking-widest"
-                    value={formData.inputInviteCode}
-                    onChange={handleChange}
-                  />
-                  <button
-                    type="button"
-                    onClick={handleJoinFamily}
-                    disabled={saving || !formData.inputInviteCode}
-                    className="flex-1 text-[11px] font-medium bg-black text-white px-4 py-2 rounded-lg hover:bg-zinc-800 transition-all disabled:bg-zinc-100 disabled:text-zinc-400"
-                  >
-                    합류하기
-                  </button>
-                </div>
-                <p className="text-[10px] text-zinc-300 italic">
-                  * 다른 가족에 합류하면 기존 가족 그룹에서 변경됩니다.
-                </p>
-              </div>
+          <div className="space-y-4">
+            <label className="text-[10px] text-zinc-400 uppercase tracking-widest pl-1 font-mono">Gender</label>
+            <div className="grid grid-cols-2 gap-3">
+              {["남성", "여성"].map((g) => (
+                <button
+                  key={g}
+                  onClick={() => setFormData({ ...formData, gender: g })}
+                  className={`py-4 rounded-2xl text-xs font-semibold border transition-all ${
+                    formData.gender === g ? "border-black bg-black text-white" : "border-zinc-100 text-zinc-400"
+                  }`}
+                >
+                  {g}
+                </button>
+              ))}
             </div>
           </div>
 
-          <button 
-            type="submit" 
-            disabled={saving}
-            className="w-full btn-black py-4"
-          >
-            {saving ? "저장 중..." : "수정 완료"}
-          </button>
-        </form>
+          <div className="space-y-1.5">
+            <label className="text-[10px] text-zinc-400 uppercase tracking-widest pl-1 font-mono">Address</label>
+            <input 
+              type="text"
+              placeholder="주 거주지를 입력해주세요"
+              className="w-full p-4 bg-zinc-50 rounded-2xl text-sm focus:ring-0 focus:border-black border-transparent transition-all placeholder:text-zinc-200"
+              value={formData.address}
+              onChange={(e) => setFormData({ ...formData, address: e.target.value })}
+            />
+          </div>
+        </div>
+
+        <button
+          onClick={handleUpdate}
+          disabled={isSubmitting}
+          className="w-full py-5 bg-black text-white rounded-2xl font-bold text-sm shadow-2xl shadow-black/10 hover:shadow-black/20 transition-all active:scale-[0.98] disabled:bg-zinc-100"
+        >
+          {isSubmitting ? "업데이트 중..." : "정보 수정 완료"}
+        </button>
       </div>
     </main>
   );
