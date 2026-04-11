@@ -16,7 +16,8 @@ import {
   Zap,
   Activity as ActivityIcon,
   Circle,
-  ChevronDown
+  ChevronDown,
+  Pencil
 } from "lucide-react";
 
 interface Pet {
@@ -540,11 +541,21 @@ export default function DashboardPage() {
 
   const handleUpdateTamagotchiName = async () => {
     if (!profile?.family_id) return;
+    const currentCount = profile.families?.tamagotchi_name_edit_count || 0;
+    
+    if (currentCount >= 2) {
+      alert("이름 수정은 최대 2번까지만 가능합니다.");
+      return;
+    }
+
     try {
       setIsSubmitting(true);
       const { error } = await supabase
         .from('families')
-        .update({ tamagotchi_name: tamagotchiNameDraft })
+        .update({ 
+          tamagotchi_name: tamagotchiNameDraft,
+          tamagotchi_name_edit_count: currentCount + 1
+        })
         .eq('id', profile.family_id);
 
       if (error) throw error;
@@ -553,7 +564,8 @@ export default function DashboardPage() {
         ...profile,
         families: {
           ...profile.families,
-          tamagotchi_name: tamagotchiNameDraft
+          tamagotchi_name: tamagotchiNameDraft,
+          tamagotchi_name_edit_count: currentCount + 1
         }
       };
       setProfile(updatedProfile);
@@ -1686,7 +1698,7 @@ export default function DashboardPage() {
           </div>
           <div className="space-y-3">
             <h2 className="text-[25px] font-light tracking-tight">안녕하세요, {profile?.nickname || profile?.name}님</h2>
-            <p className="text-[11pt] text-[#888888] font-light">사랑스러운 나의 {pets.length}마리의 아이들을 돌봐주세요 ദ്디⁼ˆ╹⥿╹ˆ⁼)</p>
+            <p className="text-[11pt] text-[#888888] font-light">사랑스러운 나의 {pets.length}마리의 아이들을 돌봐주세요 {'ദ്디⁼ˆ╹⥿╹ˆ⁼)'}</p>
           </div>
         </section>
 
@@ -1713,45 +1725,41 @@ export default function DashboardPage() {
                     <>
                       <div className="absolute top-6 left-8 flex flex-col gap-1.5">
                         <div className="flex items-center gap-2">
-                          <div className="w-1.5 h-1.5 rounded-full bg-red-500 animate-pulse" />
-                          <div className="flex items-center gap-2">
-                            <span className="text-[10pt] font-pixel tracking-widest uppercase font-semibold text-black">
-                              {family.tamagotchi_name || '집사의 정령'}
+                          <div className="w-1.5 h-1.5 rounded-full bg-blue-500 animate-pulse" />
+                          <div className="flex items-center gap-3">
+                            <span className="text-[12pt] font-pixel tracking-widest uppercase font-semibold text-black">
+                              {family.tamagotchi_name || '?'}
                             </span>
+                            {(family.tamagotchi_name_edit_count || 0) < 2 && (
+                              <button 
+                                onClick={() => {
+                                  setTamagotchiNameDraft(family.tamagotchi_name || '');
+                                  setIsEditingTamagotchi(true);
+                                }}
+                                className="p-1.5 hover:bg-zinc-100 rounded-full transition-colors text-zinc-400 hover:text-black"
+                              >
+                                <Pencil size={12} />
+                              </button>
+                            )}
                           </div>
                         </div>
                         <span className="text-[8pt] font-pixel text-[#888888] tracking-widest uppercase pl-3.5">
-                          상태: {family.is_hatched ? '부화함' : '대기 중'}
+                          상태: {family.is_hatched ? '신비로운 존재' : '관찰 중'}
                         </span>
                       </div>
 
-                      <div className="flex flex-col items-center gap-8">
+                      <div className="flex flex-col items-center justify-center">
                         <motion.div 
-                          animate={family.is_hatched 
-                            ? { y: [0, -10, 0], transition: { duration: 3, repeat: Infinity } }
-                            : { 
-                                rotate: [0, -5, 5, 0], 
-                                scale: [1, 1.05, 1],
-                                transition: { duration: 4, repeat: Infinity } 
-                              }
-                          }
-                          className="text-7xl sm:text-8xl filter drop-shadow-2xl cursor-pointer"
-                          onClick={() => setEggVibrate(v => v + 1)}
+                          animate={{ 
+                            opacity: [0.4, 0.7, 0.4],
+                            scale: [0.9, 1.1, 0.9],
+                            filter: ["blur(4px)", "blur(1px)", "blur(4px)"]
+                          }}
+                          transition={{ duration: 5, repeat: Infinity }}
+                          className="text-8xl sm:text-9xl filter drop-shadow-[0_0_50px_rgba(255,255,255,1)]"
                         >
-                          {family.is_hatched ? '👾' : '🥚'}
+                          ✨
                         </motion.div>
-                      </div>
-
-                      <div className="absolute bottom-6 left-8 right-8 flex justify-between items-end">
-                        <div className="space-y-4 w-full max-w-[140px]">
-                          <div className="flex justify-between items-end">
-                            <span className="text-[11pt] filter grayscale group-hover:grayscale-0 transition-all">❤️</span>
-                            <span className="text-[10pt] font-pixel text-black font-semibold">{family.heart_points || 0}%</span>
-                          </div>
-                          <div className="h-[3px] w-full bg-zinc-50 rounded-full overflow-hidden">
-                            <motion.div initial={{ width: 0 }} animate={{ width: `${family.heart_points || 0}%` }} className="h-full bg-black" />
-                          </div>
-                        </div>
                       </div>
                     </>
                   )}
@@ -1834,7 +1842,7 @@ export default function DashboardPage() {
                           <motion.div 
                             initial={{ opacity: 0, scale: 0.8, y: -10 }}
                             animate={{ opacity: 1, scale: 1, y: 0 }}
-                            className="absolute top-[calc(100%+20px)] left-1/2 -translate-x-1/2 z-50 px-3 py-2 bg-white border border-black shadow-[0_8px_20px_rgba(0,0,0,0.12)] rounded-2xl whitespace-nowrap"
+                            className="absolute top-[calc(100%+12px)] left-1/2 -translate-x-1/2 z-50 px-3 py-2 bg-white border border-black shadow-[0_8px_20px_rgba(0,0,0,0.12)] rounded-2xl whitespace-nowrap"
                           >
                             <span className="text-[10px] font-bold tracking-tight text-black">
                               {DIET_MESSAGES[Math.abs(pet.id.split('').reduce((acc, char) => acc + char.charCodeAt(0), 0)) % DIET_MESSAGES.length]}
@@ -2231,10 +2239,6 @@ export default function DashboardPage() {
           </section>
         )}
 
-        <footer className="pt-20 border-t border-zinc-100 pb-10">
-          <div className="flex justify-between items-center text-[10px] text-[#888888] font-mono"><span>가족 코드: {profile?.families?.invite_code}</span><span>© 2026 ZIPCHAK</span></div>
-        </footer>
-
         {isDatePickerOpen && (
           <div className="fixed inset-0 bg-black/40 backdrop-blur-sm z-[60] flex items-center justify-center p-6 animate-in fade-in duration-300">
             <motion.div
@@ -2311,20 +2315,14 @@ export default function DashboardPage() {
                       const daysInMonth = new Date(pickerYear, pickerMonth, 0).getDate();
                       const firstDay = new Date(pickerYear, pickerMonth - 1, 1).getDay();
                       const days = [];
-
-                      // Empty slots
                       for (let i = 0; i < firstDay; i++) {
                         days.push(<div key={`empty-${i}`} />);
                       }
-
-                      // Actual days
                       for (let d = 1; d <= daysInMonth; d++) {
                         const dateObj = new Date(pickerYear, pickerMonth - 1, d);
                         const isSelected = historySelectedDate.getFullYear() === pickerYear &&
                           historySelectedDate.getMonth() + 1 === pickerMonth &&
                           historySelectedDate.getDate() === d;
-
-                        // Week highlighting logic
                         let isWeekSelected = false;
                         if (historyViewMode === 'week') {
                           const start = new Date(historySelectedDate);
@@ -2333,7 +2331,6 @@ export default function DashboardPage() {
                           end.setDate(end.getDate() + 6);
                           isWeekSelected = dateObj >= start && dateObj <= end;
                         }
-
                         days.push(
                           <button
                             key={d}
@@ -2404,8 +2401,14 @@ export default function DashboardPage() {
             </div>
           </div>
         )}
-
       </div>
+
+      <footer className="pt-20 border-t border-zinc-100 pb-40">
+        <div className="flex justify-between items-center text-[10px] text-[#888888] font-mono px-6 max-w-[800px] mx-auto">
+          <span>가족 코드: {profile?.families?.invite_code}</span>
+          <span>© 2026 ZIPCHAK</span>
+        </div>
+      </footer>
 
       {/* Bottom Navigation */}
       <div className="fixed bottom-0 left-0 right-0 bg-white border-t border-zinc-100 z-[100] pb-safe shadow-[0_-5px_20px_rgba(0,0,0,0.03)]">
@@ -2420,7 +2423,6 @@ export default function DashboardPage() {
           </button>
           <button onClick={() => setActiveBottomTab('calendar')} className={`flex flex-col items-center gap-1.5 transition-colors flex-1 py-1 sm:py-2 ${activeBottomTab === 'calendar' ? 'text-black' : 'text-[#888888] hover:text-zinc-600'}`}>
             <svg width="24" height="24" viewBox="0 0 24 24" fill={activeBottomTab === 'calendar' ? "currentColor" : "none"} stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect><line x1="16" y1="2" x2="16" y2="6"></line><line x1="8" y1="2" x2="8" y2="6"></line><line x1="3" y1="10" x2="21" y2="10"></line></svg>
-            <span className="text-[10px] font-semibold tracking-widest uppercase">일정</span>
           </button>
         </nav>
       </div>
