@@ -5,20 +5,12 @@ import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { useState } from "react";
 
-const PixelDog = () => (
-  <svg width="32" height="32" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" className="mx-auto my-6">
-    {/* Simple Pixel Dog */}
-    <rect x="4" y="10" width="2" height="2" fill="black" />
-    <rect x="18" y="10" width="2" height="2" fill="black" />
-    <rect x="6" y="8" width="12" height="8" fill="black" />
-    <rect x="8" y="10" width="2" height="2" fill="white" />
-    <rect x="14" y="10" width="2" height="2" fill="white" />
-    <rect x="11" y="14" width="2" height="1" fill="white" />
-    <rect x="6" y="16" width="2" height="2" fill="black" />
-    <rect x="16" y="16" width="2" height="2" fill="black" />
-    <rect x="8" y="4" width="2" height="4" fill="black" />
-    <rect x="14" y="4" width="2" height="4" fill="black" />
-  </svg>
+const CustomLogo = () => (
+  <img 
+    src="/images/로고.jpg" 
+    alt="집사 로고" 
+    className="mx-auto my-6 h-24 w-auto object-contain rounded-[20px] shadow-2xl shadow-black/10 ring-1 ring-black/5"
+  />
 );
 
 export default function LandingPage() {
@@ -72,10 +64,10 @@ export default function LandingPage() {
         {/* Main Visual */}
         <section className="space-y-4 pt-8">
           <p className="text-xl tracking-[0.2em] font-light text-zinc-500 uppercase">
-            지독하게 사랑한다면, 집착하세요.
+            집사의 밀착케어 🔍
           </p>
-          <PixelDog />
-          <h1 className="text-5xl font-light tracking-tighter">집착</h1>
+          <CustomLogo />
+          <h1 className="text-5xl tracking-tighter font-smile font-bold">집착</h1>
         </section>
 
         {/* Form Container */}

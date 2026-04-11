@@ -8,6 +8,14 @@
     font-style: normal;
 }
 
+@font-face {
+    font-family: 'SchoolSafetyRoundedSmile';
+    src: url('https://cdn.jsdelivr.net/gh/projectnoonnu/2408-5@1.0/HakgyoansimDunggeunmisoTTF-R.woff2') format('woff2');
+    font-weight: normal;
+    font-style: normal;
+    font-display: swap;
+}
+
 :root {
   --background: #ffffff;
   --foreground: #1A1A1A;
@@ -46,6 +54,14 @@ h1, h2, h3, h4, h5, h6 {
   font-family: 'DungGeunMo', monospace;
 }
 
+.font-smile {
+  font-family: 'SchoolSafetyRoundedSmile', sans-serif;
+}
+
+.font-mallang {
+  font-family: 'Ok Mallang W', 'OK말랑', 'SchoolSafetyRoundedSmile', sans-serif;
+}
+
 input {
   outline: none;
 }
@@ -80,7 +96,7 @@ input {
   width: 100%;
   border: none;
   border-bottom: 1px solid #f1f1f1;
-  padding: 1rem 0;
+  padding: 1rem 0 1rem 0.5rem;
   font-size: 1rem;
   font-weight: 300;
   background-color: transparent;
