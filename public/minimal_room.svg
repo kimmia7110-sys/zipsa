@@ -1,0 +1,91 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 400 400" width="100%" height="100%">
+  <defs>
+    <!-- Patterns for textures -->
+    <pattern id="scanlines" width="4" height="4" patternUnits="userSpaceOnUse">
+      <rect width="4" height="1" fill="rgba(0,0,0,0.03)" />
+    </pattern>
+    
+    <!-- Wooden Plank Texture Pattern -->
+    <pattern id="planks" width="60" height="20" patternUnits="userSpaceOnUse" patternTransform="rotate(0)">
+      <rect width="58" height="18" fill="#E8D1B1" />
+      <rect x="2" y="2" width="54" height="14" fill="#F1DEC6" />
+      <rect x="10" y="8" width="20" height="1" fill="#D4BD9F" /> <!-- Wood Grain -->
+    </pattern>
+
+    <!-- Floor Perspective Gradient -->
+    <linearGradient id="floorGrad" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#E0C9A6" />
+      <stop offset="100%" stop-color="#CBB38E" />
+    </linearGradient>
+  </defs>
+
+  <style>
+    .pixelated { shape-rendering: crispEdges; }
+  </style>
+
+  <!-- 1. Background / Base Wall Color -->
+  <rect width="400" height="400" fill="#FDFCF5" />
+
+  <!-- 2. 3D Structure: Left Side Wall -->
+  <!-- Left Wall shading to give depth -->
+  <polygon points="0,0 50,40 50,285 0,325" fill="#F7F1E6" class="pixelated" />
+  <line x1="50" y1="40" x2="50" y2="285" stroke="#E6DED0" stroke-width="1" class="pixelated" />
+
+  <!-- 3. Back Wall -->
+  <rect x="50" y="40" width="350" height="245" fill="#FDFCF5" class="pixelated" />
+  <line x1="0" y1="40" x2="400" y2="40" stroke="#E6DED0" stroke-width="1" class="pixelated" />
+
+  <!-- 4. Baseboard (Molding) -->
+  <rect x="0" y="285" width="400" height="15" fill="#EBE3D5" class="pixelated" />
+  <line x1="0" y1="285" x2="400" y2="285" stroke="#DED6C8" stroke-width="1" class="pixelated" />
+  <line x1="0" y1="300" x2="400" y2="300" stroke="#DED6C8" stroke-width="1" class="pixelated" />
+
+  <!-- 5. Detailed Wooden Floor with Planks & Perspective -->
+  <g clip-path="url(#floorClip)">
+    <defs>
+      <clipPath id="floorClip">
+        <polygon points="0,300 50,285 400,285 400,400 0,400" />
+      </clipPath>
+    </defs>
+    
+    <!-- Floor Base -->
+    <rect x="0" y="285" width="400" height="115" fill="url(#floorGrad)" />
+    
+    <!-- Drawing Planks manually for better control of perspective feel -->
+    <g stroke="#D4BD9F" stroke-width="0.5" opacity="0.6">
+      <!-- Vertical Plank Lines -->
+      <line x1="40" y1="300" x2="0" y2="400" />
+      <line x1="80" y1="300" x2="50" y2="400" />
+      <line x1="120" y1="300" x2="100" y2="400" />
+      <line x1="160" y1="300" x2="150" y2="400" />
+      <line x1="200" y1="300" x2="200" y2="400" />
+      <line x1="240" y1="300" x2="250" y2="400" />
+      <line x1="280" y1="300" x2="300" y2="400" />
+      <line x1="320" y1="300" x2="350" y2="400" />
+      <line x1="360" y1="300" x2="400" y2="400" />
+
+      <!-- Horizontal Plank Joints (Staggered) -->
+      <line x1="0" y1="330" x2="400" y2="330" stroke-dasharray="40,40" />
+      <line x1="0" y1="365" x2="400" y2="365" stroke-dasharray="20,40" stroke-dashoffset="30" />
+    </g>
+
+    <!-- Wood Grain details (Random pixel dots) -->
+    <g fill="#D4BD9F" opacity="0.3">
+      <rect x="30" y="340" width="2" height="1" />
+      <rect x="150" y="320" width="3" height="1" />
+      <rect x="280" y="370" width="2" height="1" />
+      <rect x="100" y="380" width="4" height="1" />
+      <rect x="340" y="310" width="2" height="1" />
+    </g>
+  </g>
+
+  <!-- 6. LCD Scanline Overlay for High-Quality Texture -->
+  <rect width="400" height="400" fill="url(#scanlines)" pointer-events="none" />
+  
+  <!-- Subtle Vignette to polish -->
+  <radialGradient id="vignette" cx="50%" cy="50%" r="75%">
+    <stop offset="60%" stop-color="rgba(0,0,0,0)" />
+    <stop offset="100%" stop-color="rgba(141, 125, 102, 0.08)" />
+  </radialGradient>
+  <rect width="400" height="400" fill="url(#vignette)" pointer-events="none" />
+</svg>

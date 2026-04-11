@@ -17,7 +17,9 @@ import {
   Activity as ActivityIcon,
   Circle,
   ChevronDown,
-  Pencil
+  Pencil,
+  ShoppingBag,
+  Check
 } from "lucide-react";
 
 interface Pet {
@@ -101,6 +103,27 @@ export default function DashboardPage() {
   const [pickerMonth, setPickerMonth] = useState(new Date().getMonth() + 1);
   const [pickerStep, setPickerStep] = useState<'month' | 'day'>('month');
 
+  // 🏪 Pocket Shop & Inventory States
+  const [activePocketView, setActivePocketView] = useState<'room' | 'shop'>('room');
+  const [shopCategory, setShopCategory] = useState<'Wallpaper' | 'Furniture' | 'Accessory'>('Wallpaper');
+  const [inventory, setInventory] = useState<string[]>(['wp-minimal']); 
+  const [previewState, setPreviewState] = useState<{ wallpaper: string | null; furniture: any[] }>({
+    wallpaper: '/minimal_room.png',
+    furniture: []
+  });
+  const [roomState, setRoomState] = useState<{ wallpaper: string | null; furniture: any[] }>({
+    wallpaper: '/minimal_room.png',
+    furniture: []
+  });
+  const [isCelebrationOpen, setIsCelebrationOpen] = useState(false);
+
+  // Mock Shop Data - 29CM Style Item Definitions
+  const shopItems = useMemo(() => [
+    { id: 'wp-minimal', name: 'MINIMAL IVORY WALLPAPER', category: 'Wallpaper', price: 0, image_url: '/minimal_room.png', rarity: 'Normal', description: '가장 순수한 형태의 따뜻한 아이보리 공간' },
+    { id: 'wp-pink', name: 'STAYING IN PINK WALLPAPER', category: 'Wallpaper', price: 150, image_url: '/sakura_room.png', rarity: 'Normal', description: '부드러운 봄의 공기를 담은 픽셀 벽지' },
+    { id: 'wp-white', name: 'MINIMAL CREAM CANVAS', category: 'Wallpaper', price: 120, image_url: '/minimal_room.png', rarity: 'Normal', description: '어떤 가구와도 조화로운 순백의 캔버스' },
+  ], []);
+
   // Navigation State
   const [activeBottomTab, setActiveBottomTab] = useState<'home' | 'pocket' | 'calendar'>('home');
   const [petsOrder, setPetsOrder] = useState<string[]>([]); // For Card Stack order
@@ -140,6 +163,43 @@ export default function DashboardPage() {
       return [...filteredPrev, ...missingIds];
     });
   }, [pets]);
+
+  // 🏥 Shop Category Filter
+  const filteredItems = useMemo(() => 
+    shopItems.filter(item => item.category === shopCategory), 
+    [shopCategory, shopItems]
+  );
+
+  const handleCollectItem = (item: any) => {
+    if (inventory.includes(item.id)) {
+      // If already owned, just apply it
+      if (item.category === 'Wallpaper') {
+        setRoomState(prev => ({ ...prev, wallpaper: item.image_url }));
+      } else {
+        const isAlreadyPlaced = roomState.furniture.some(f => f.id === item.id);
+        if (!isAlreadyPlaced) {
+          setRoomState(prev => ({
+            ...prev,
+            furniture: [...prev.furniture, { id: item.id, image_url: item.image_url, x: item.x || 150, y: item.y || 150 }]
+          }));
+        }
+      }
+    } else {
+      // Purchase logic
+      setInventory(prev => [...prev, item.id]);
+      if (item.category === 'Wallpaper') {
+        setRoomState(prev => ({ ...prev, wallpaper: item.image_url }));
+      } else {
+        setRoomState(prev => ({
+          ...prev,
+          furniture: [...prev.furniture, { id: item.id, image_url: item.image_url, x: item.x || 150, y: item.y || 150 }]
+        }));
+      }
+    }
+    
+    setIsCelebrationOpen(true);
+    setTimeout(() => setIsCelebrationOpen(false), 3000);
+  };
 
   // Handle Swipe Card
   const handleSwipe = (direction: 'left' | 'right') => {
@@ -1743,69 +1803,178 @@ export default function DashboardPage() {
         {activeBottomTab === 'pocket' && (() => {
           const family = profile?.families;
           if (!family) return null;
+          
+          const isDemo = profile?.nickname === '미아' || profile?.nickname === 'Mia';
+
           return (
-            <motion.section initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} className="space-y-12 pb-40">
-              <div className="space-y-3">
-                <span className="text-[10pt] tracking-[0.3em] text-[#888888] uppercase font-pixel">포켓룸</span>
-                <div className={`relative aspect-square border-[1px] rounded-2xl overflow-hidden flex items-center justify-center group shadow-2xl transition-all duration-1000 ${(!family.is_egg_received && ((family.heart_points || 0) < 35 || (family.active_days_count || 0) < 7))
-                    ? 'bg-[#0A0A0A] border-zinc-800 shadow-black/40'
-                    : 'bg-white border-zinc-900 shadow-zinc-100'
-                  }`}>
-                  {(!family.is_egg_received && ((family.heart_points || 0) < 35 || (family.active_days_count || 0) < 7)) ? (
-                    <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="flex flex-col items-center gap-4 text-center px-8">
-                      <motion.div animate={{ opacity: [0.3, 0.6, 0.3], scale: [1, 1.05, 1] }} transition={{ duration: 4, repeat: Infinity }} className="text-3xl filter grayscale opacity-50">✨</motion.div>
-                      <div className="space-y-2">
-                        <p className="text-[11pt] font-pixel text-zinc-500 tracking-[0.2em] uppercase">Private Space</p>
-                        <p className="text-[9pt] font-pixel text-zinc-700 tracking-tighter leading-relaxed">
-                          7일간 정성껏 기록을 쌓으면 미지의 공간이 열립니다<br/>
-                          <span className="text-zinc-600">(현재: {family.active_days_count || 0}일 / 하트 {Math.min(35, family.heart_points || 0)}/35개)</span>
-                        </p>
-                      </div>
-                    </motion.div>
-                  ) : (
-                    <>
-                      <div className="absolute top-6 left-8 flex flex-col gap-1.5">
-                        <div className="flex items-center gap-2">
-                          <div className="w-1.5 h-1.5 rounded-full bg-blue-500 animate-pulse" />
-                          <div className="flex items-center gap-3">
-                            <span className="text-[12pt] font-pixel tracking-widest uppercase font-semibold text-black">
-                              {family.tamagotchi_name || '?'}
-                            </span>
-                            {(family.tamagotchi_name_edit_count || 0) < 2 && (
-                              <button 
-                                onClick={() => {
-                                  setTamagotchiNameDraft(family.tamagotchi_name || '');
-                                  setIsEditingTamagotchi(true);
-                                }}
-                                className="p-1.5 hover:bg-zinc-100 rounded-full transition-colors text-zinc-400 hover:text-black"
-                              >
-                                <Pencil size={12} />
-                              </button>
+            <motion.section initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="space-y-8 pb-40">
+              {/* Pocket Tab Header */}
+              <div className="flex justify-between items-center px-2">
+                <div className="flex gap-6">
+                  {['ROOM', 'SHOP'].map(tab => (
+                    <button
+                      key={tab}
+                      onClick={() => setActivePocketView(tab.toLowerCase() as any)}
+                      className={`text-[10px] tracking-[0.2em] font-medium transition-all relative py-2 ${
+                        activePocketView === tab.toLowerCase() ? 'text-black' : 'text-zinc-300'
+                      }`}
+                    >
+                      {tab}
+                      {activePocketView === tab.toLowerCase() && (
+                        <motion.div layoutId="pocketTab" className="absolute bottom-0 left-0 right-0 h-[1.5px] bg-black" />
+                      )}
+                    </button>
+                  ))}
+                </div>
+                {activePocketView === 'room' && (
+                  <button onClick={() => setActivePocketView('shop')} className="p-2 text-zinc-400 hover:text-black transition-colors">
+                    <ShoppingBag size={18} />
+                  </button>
+                )}
+              </div>
+
+              {activePocketView === 'room' ? (
+                /* 🏠 ROOM VIEW */
+                <div className="space-y-12 animate-in fade-in slide-in-from-bottom-4 duration-700">
+                  <div className="space-y-3">
+                    <div 
+                      className={`relative aspect-square border-[1px] rounded-2xl overflow-hidden flex items-center justify-center group shadow-2xl transition-all duration-1000 ${(!family.is_egg_received && !isDemo && ((family.heart_points || 0) < 35 || (family.active_days_count || 0) < 7))
+                        ? 'bg-[#0A0A0A] border-zinc-800 shadow-black/40'
+                        : 'bg-white border-zinc-900 shadow-zinc-100'
+                      }`}
+                      style={(!family.is_egg_received && !isDemo && ((family.heart_points || 0) < 35 || (family.active_days_count || 0) < 7)) ? {} : {
+                        backgroundImage: `url('${roomState.wallpaper || '/pocket_room.svg'}')`,
+                        backgroundSize: 'cover',
+                        backgroundPosition: 'center',
+                        imageRendering: 'pixelated'
+                      }}
+                    >
+                      {(!family.is_egg_received && !isDemo && ((family.heart_points || 0) < 35 || (family.active_days_count || 0) < 7)) ? (
+                        <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="flex flex-col items-center gap-4 text-center px-8">
+                          <motion.div animate={{ opacity: [0.3, 0.6, 0.3], scale: [1, 1.05, 1] }} transition={{ duration: 4, repeat: Infinity }} className="text-3xl filter grayscale opacity-50">✨</motion.div>
+                          <div className="space-y-2">
+                            <p className="text-[11pt] font-pixel text-zinc-500 tracking-[0.2em] uppercase">Private Space</p>
+                            <p className="text-[9pt] font-pixel text-zinc-700 tracking-tighter leading-relaxed">
+                              7일간 정성껏 기록을 쌓으면 미지의 공간이 열립니다<br/>
+                              <span className="text-zinc-600">(현재: {family.active_days_count || 0}일 / 하트 {Math.min(35, family.heart_points || 0)}/35개)</span>
+                            </p>
+                          </div>
+                        </motion.div>
+                      ) : (
+                        <>
+                          <div className="relative flex flex-col items-center">
+                            <AnimatePresence>
+                              {isCelebrationOpen && (
+                                <motion.div 
+                                  initial={{ opacity: 0, y: 10, scale: 0.8 }}
+                                  animate={{ opacity: 1, y: -20, scale: 1 }}
+                                  exit={{ opacity: 0, scale: 0.8 }}
+                                  className="absolute -top-16 bg-white border border-zinc-100 px-4 py-2 rounded-2xl shadow-xl z-20"
+                                >
+                                  <p className="text-[10px] font-pixel text-black whitespace-nowrap">와! 방이 예뻐졌어! ✨</p>
+                                  <div className="absolute -bottom-1 left-1/2 -translate-x-1/2 w-2 h-2 bg-white border-b border-r border-zinc-100 rotate-45" />
+                                </motion.div>
+                              )}
+                            </AnimatePresence>
+                            <motion.div 
+                              animate={{ 
+                                opacity: [0.6, 0.9, 0.6],
+                                scale: [0.95, 1.05, 0.95],
+                                y: [0, -5, 0]
+                              }}
+                              transition={{ duration: 4, repeat: Infinity }}
+                              className="text-8xl sm:text-9xl filter drop-shadow-[0_0_30px_rgba(255,255,255,0.8)]"
+                            >
+                              ✨
+                            </motion.div>
+                          </div>
+                        </>
+                      )}
+                    </div>
+                  </div>
+                </div>
+              ) : (
+                /* 🛍️ SHOP VIEW */
+                <div className="space-y-12 animate-in fade-in duration-500 bg-white min-h-[600px] -mx-6 px-6 pt-4">
+                  <div className="flex flex-col items-center gap-6 py-6 border-b border-zinc-50">
+                    <span className="text-[9px] tracking-[0.3em] text-zinc-300 uppercase font-pixel italic">Preview Display</span>
+                    <div 
+                      className="w-40 aspect-square border border-zinc-100 rounded-xl overflow-hidden shadow-inner flex items-center justify-center relative bg-white"
+                      style={{
+                        backgroundImage: `url('${previewState.wallpaper || '/pocket_room.svg'}')`,
+                        backgroundSize: 'cover',
+                        backgroundPosition: 'center',
+                        imageRendering: 'pixelated'
+                      }}
+                    >
+                       <div className="text-3xl opacity-80 filter grayscale">✨</div>
+                    </div>
+                  </div>
+
+                  <div className="space-y-10">
+                    <div className="flex gap-8 justify-center border-b border-zinc-50">
+                      {[ 
+                        { id: 'Wallpaper', label: 'WALLPAPER' },
+                        { id: 'Furniture', label: 'FURNITURE' },
+                        { id: 'Accessory', label: 'ACCESSORY' }
+                      ].map(cat => (
+                        <button
+                          key={cat.id}
+                          onClick={() => setShopCategory(cat.id as any)}
+                          className={`text-[9px] tracking-[0.2em] font-light py-4 transition-all ${
+                            shopCategory === cat.id ? 'text-black border-b border-black' : 'text-zinc-300 hover:text-zinc-500'
+                          }`}
+                        >
+                          {cat.label}
+                        </button>
+                      ))}
+                    </div>
+
+                    <div className="grid grid-cols-2 gap-x-6 gap-y-12">
+                      {filteredItems.map(item => (
+                        <motion.div 
+                          key={item.id}
+                          layout
+                          initial={{ opacity: 0, y: 10 }}
+                          animate={{ opacity: 1, y: 0 }}
+                          className="group cursor-pointer flex flex-col gap-4"
+                          onClick={() => {
+                            if (item.category === 'Wallpaper') setPreviewState(prev => ({ ...prev, wallpaper: item.image_url }));
+                            else setPreviewState(prev => ({ ...prev, furniture: [item] }));
+                          }}
+                        >
+                          <div className="aspect-square bg-zinc-50 flex items-center justify-center overflow-hidden transition-all group-hover:bg-zinc-100/50">
+                            {item.category === 'Wallpaper' ? (
+                              <div className="w-full h-full" style={{ backgroundImage: `url('${item.image_url}')`, backgroundSize: 'cover', imageRendering: 'pixelated' }} />
+                            ) : (
+                              <span className="text-5xl group-hover:scale-110 transition-transform duration-500">{item.image_url}</span>
                             )}
                           </div>
-                        </div>
-                        <span className="text-[8pt] font-pixel text-[#888888] tracking-widest uppercase pl-3.5">
-                          상태: {family.is_hatched ? '신비로운 존재' : '관찰 중'}
-                        </span>
-                      </div>
-
-                      <div className="flex flex-col items-center justify-center">
-                        <motion.div 
-                          animate={{ 
-                            opacity: [0.4, 0.7, 0.4],
-                            scale: [0.9, 1.1, 0.9],
-                            filter: ["blur(4px)", "blur(1px)", "blur(4px)"]
-                          }}
-                          transition={{ duration: 5, repeat: Infinity }}
-                          className="text-8xl sm:text-9xl filter drop-shadow-[0_0_50px_rgba(255,255,255,1)]"
-                        >
-                          ✨
+                          <div className="space-y-1 px-1">
+                            <div className="flex justify-between items-start">
+                              <h3 className="text-[10px] font-light tracking-tight text-zinc-900 leading-tight pr-4 uppercase">{item.name}</h3>
+                              <span className="text-[9px] font-mono font-medium">{item.price === 0 ? 'FREE' : item.price.toLocaleString()}</span>
+                            </div>
+                            <p className="text-[8px] text-zinc-400 font-light">{item.description}</p>
+                            <div className="pt-3">
+                              <button 
+                                onClick={(e) => { e.stopPropagation(); handleCollectItem(item); }}
+                                className={`w-full py-2 text-[9px] tracking-widest uppercase transition-all border ${
+                                  inventory.includes(item.id) 
+                                    ? 'bg-zinc-50 border-zinc-100 text-zinc-400 font-medium' 
+                                    : 'border-zinc-950 bg-white text-zinc-950 hover:bg-black hover:text-white font-medium'
+                                }`}
+                              >
+                                {inventory.includes(item.id) ? '소장함' : '소장하기'}
+                              </button>
+                            </div>
+                          </div>
                         </motion.div>
-                      </div>
-                    </>
-                  )}
+                      ))}
+                    </div>
+                  </div>
                 </div>
-              </div>
+              )}
             </motion.section>
           );
         })()}

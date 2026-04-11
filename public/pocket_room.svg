@@ -1,0 +1,100 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 400 400" width="100%" height="100%">
+  <defs>
+    <!-- Pixel Heart Shape (5x5 Grid) -->
+    <path id="px_heart" d="M 1 0 H 2 V 1 H 3 V 0 H 4 V 1 H 5 V 3 H 4 V 4 H 3 V 5 H 2 V 4 H 1 V 3 H 0 V 1 H 1 Z" />
+    
+    <!-- Pixel Dot Shape -->
+    <rect id="px_dot" width="2" height="2" />
+    
+    <!-- 🎛️ CORE: LCD Scanline Grid Texture -->
+    <!-- 미세한 가로 스캔라인 패턴. 흰색 노이즈 라인을 섞어 액정 글리치 느낌을 냅니다. -->
+    <pattern id="lcd-grid" width="4" height="4" patternUnits="userSpaceOnUse">
+      <rect width="4" height="1" y="0" fill="rgba(80, 40, 50, 0.04)" />
+      <rect width="1" height="4" x="0" fill="rgba(80, 40, 50, 0.02)" />
+      <rect width="4" height="1" y="2" fill="rgba(255, 255, 255, 0.15)" />
+    </pattern>
+
+    <!-- 📺 CORE: LCD Screen CRT Vignette -->
+    <!-- 주변부를 살짝 어둡게 처리하여 아날로그 액정의 굴곡진 깊이감을 추가합니다. -->
+    <radialGradient id="vignette" cx="50%" cy="50%" r="75%">
+      <stop offset="60%" stop-color="rgba(0,0,0,0)" />
+      <stop offset="100%" stop-color="rgba(80, 40, 50, 0.12)" />
+    </radialGradient>
+  </defs>
+
+  <style>
+    /* 픽셀 아트 스타일의 계단 현상(거친 경계)을 강력하게 유지 */
+    .pixelated { shape-rendering: crispEdges; }
+    .room-base { stroke: #ffb4bc; stroke-width: 2px; stroke-linejoin: miter; }
+  </style>
+
+  <!-- 바깥 빈틈 방지 베이스 (크림 화이트) -->
+  <rect width="400" height="400" fill="#fffcf5" />
+
+  <!-- 🏠 3D Room Box Layout -->
+  <g class="room-base pixelated">
+    <!-- 천장 (Ceiling) -->
+    <polygon points="-10,-10 410,-10 410,40 30,40" fill="#fffcf5" />
+    <!-- 좌측 벽 (Left Wall) : 구조감을 위한 미세한 음영 화이트 -->
+    <polygon points="-10,-10 30,40 30,270 -10,310" fill="#fdf0e3" />
+    <!-- 뒷 벽 (Back Wall) : 크림 화이트 -->
+    <rect x="30" y="40" width="380" height="230" fill="#fffcf5" />
+    <!-- 바닥 (Floor) : 파스텔 핑크 -->
+    <polygon points="-10,310 30,270 410,270 410,410 -10,410" fill="#ffebec" />
+  </g>
+
+  <!-- 바닥 원근감 처리 (Floor Perspective Lines) -->
+  <line class="pixelated" x1="-10" y1="270" x2="410" y2="270" stroke="#ffb4bc" stroke-width="2" />
+  <line class="pixelated" x1="-10" y1="290" x2="410" y2="290" stroke="#ffd1d8" stroke-width="2" opacity="0.6" />
+  <line class="pixelated" x1="-10" y1="320" x2="410" y2="320" stroke="#ffd1d8" stroke-width="2" opacity="0.3" />
+
+  <!-- ✨ Wall Pixel Decorations : 상단 크림 화이트 영역에만 흩뿌려짐 -->
+  <g class="pixelated">
+    <!-- 🤍 1. White Pixel Hearts -->
+    <use href="#px_heart" transform="translate(60, 60) scale(3)" fill="#ffffff" opacity="0.9" />
+    <use href="#px_heart" transform="translate(180, 80) scale(2)" fill="#ffffff" opacity="0.7" />
+    <use href="#px_heart" transform="translate(320, 100) scale(4)" fill="#ffffff" opacity="0.9" />
+    <use href="#px_heart" transform="translate(120, 150) scale(2.5)" fill="#ffffff" opacity="0.8" />
+    <use href="#px_heart" transform="translate(250, 190) scale(3)" fill="#ffffff" opacity="0.8" />
+    <use href="#px_heart" transform="translate(360, 160) scale(2)" fill="#ffffff" opacity="0.6" />
+    <use href="#px_heart" transform="translate(80, 230) scale(3.5)" fill="#ffffff" opacity="0.9" />
+    <use href="#px_heart" transform="translate(300, 240) scale(2.5)" fill="#ffffff" opacity="0.8" />
+
+    <!-- 💖 2. Pastel Pink Pixel Hearts -->
+    <use href="#px_heart" transform="translate(140, 50) scale(3)" fill="#ffb4bc" opacity="0.9" />
+    <use href="#px_heart" transform="translate(260, 60) scale(2.5)" fill="#ffb4bc" opacity="0.8" />
+    <use href="#px_heart" transform="translate(90, 110) scale(2)" fill="#ffb4bc" opacity="0.7" />
+    <use href="#px_heart" transform="translate(350, 70) scale(3.5)" fill="#ffb4bc" opacity="0.85" />
+    <use href="#px_heart" transform="translate(190, 140) scale(3)" fill="#ffb4bc" opacity="0.8" />
+    <use href="#px_heart" transform="translate(60, 180) scale(2.5)" fill="#ffb4bc" opacity="0.7" />
+    <use href="#px_heart" transform="translate(280, 200) scale(4)" fill="#ffb4bc" opacity="0.9" />
+    <use href="#px_heart" transform="translate(160, 220) scale(2)" fill="#ffb4bc" opacity="0.6" />
+    <use href="#px_heart" transform="translate(360, 230) scale(3)" fill="#ffb4bc" opacity="0.8" />
+
+    <!-- ◽ 3. White Pixel Dots -->
+    <use href="#px_dot" transform="translate(100, 70) scale(2)" fill="#ffffff" />
+    <use href="#px_dot" transform="translate(220, 50) scale(3)" fill="#ffffff" />
+    <use href="#px_dot" transform="translate(300, 130) scale(2.5)" fill="#ffffff" />
+    <use href="#px_dot" transform="translate(70, 130) scale(2)" fill="#ffffff" />
+    <use href="#px_dot" transform="translate(160, 180) scale(3)" fill="#ffffff" />
+    <use href="#px_dot" transform="translate(110, 200) scale(2)" fill="#ffffff" />
+    <use href="#px_dot" transform="translate(230, 230) scale(2.5)" fill="#ffffff" />
+    <use href="#px_dot" transform="translate(330, 180) scale(3)" fill="#ffffff" />
+
+    <!-- 🌸 4. Pink Pixel Dots -->
+    <use href="#px_dot" transform="translate(220, 90) scale(2)" fill="#ffb4bc" />
+    <use href="#px_dot" transform="translate(380, 110) scale(2.5)" fill="#ffb4bc" />
+    <use href="#px_dot" transform="translate(130, 100) scale(3)" fill="#ffb4bc" />
+    <use href="#px_dot" transform="translate(50, 200) scale(2)" fill="#ffb4bc" />
+    <use href="#px_dot" transform="translate(200, 110) scale(2.5)" fill="#ffb4bc" />
+    <use href="#px_dot" transform="translate(280, 150) scale(2)" fill="#ffb4bc" />
+    <use href="#px_dot" transform="translate(130, 250) scale(3)" fill="#ffb4bc" />
+    <use href="#px_dot" transform="translate(380, 200) scale(2)" fill="#ffb4bc" />
+  </g>
+
+  <!-- 📺 Screen Layers (반드시 최상단에 위치하여 질감을 입힘) -->
+  <!-- 1. 아날로그 액정 가장자리 음영 -->
+  <rect x="0" y="0" width="400" height="400" fill="url(#vignette)" pointer-events="none" />
+  <!-- 2. 미세한 스캔라인 및 격자 텍스처 (글리치) -->
+  <rect x="0" y="0" width="400" height="400" fill="url(#lcd-grid)" pointer-events="none" />
+</svg>
