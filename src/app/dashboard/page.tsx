@@ -985,7 +985,6 @@ export default function DashboardPage() {
           {recordStep === 1 ? (
             <div className="space-y-10">
               <div className="space-y-4">
-                <span className="text-[10px] text-[#888888] uppercase tracking-widest">품목 선택</span>
                 <h2 className="text-2xl font-light tracking-tight flex items-center gap-3">
                   <span className="text-3xl">💊</span> {selectedPet?.name || '아이'}가 어떤 약을 먹었나요?
                 </h2>
