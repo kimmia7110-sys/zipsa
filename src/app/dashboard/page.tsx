@@ -5,14 +5,14 @@ import { supabase } from "@/lib/supabase";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { motion, AnimatePresence } from "framer-motion";
-import { 
-  Heart, 
-  Flame, 
-  Calendar, 
-  ChevronRight, 
-  Moon, 
-  Sun, 
-  Wind, 
+import {
+  Heart,
+  Flame,
+  Calendar,
+  ChevronRight,
+  Moon,
+  Sun,
+  Wind,
   Zap,
   Activity as ActivityIcon,
   Circle,
@@ -54,10 +54,10 @@ export default function DashboardPage() {
   const [prefDraft, setPrefDraft] = useState({ treats: '', toys: '', food: '' });
   const [recordingType, setRecordingType] = useState<string | null>(null);
   const [recordStep, setRecordStep] = useState(1);
-  const [recordData, setRecordData] = useState({ 
-    type: '', 
-    amountValue: '', 
-    amountUnit: 'g', 
+  const [recordData, setRecordData] = useState({
+    type: '',
+    amountValue: '',
+    amountUnit: 'g',
     memo: '',
     duration: '',
     mood: ''
@@ -87,27 +87,27 @@ export default function DashboardPage() {
   const [pickerYear, setPickerYear] = useState(new Date().getFullYear());
   const [pickerMonth, setPickerMonth] = useState(new Date().getMonth() + 1);
   const [pickerStep, setPickerStep] = useState<'month' | 'day'>('month');
-  
+
   // Navigation State
   const [activeBottomTab, setActiveBottomTab] = useState<'home' | 'pocket' | 'calendar'>('home');
   const [petsOrder, setPetsOrder] = useState<string[]>([]); // For Card Stack order
-  
+
   // Sync petsOrder when pets are loaded or updated
   useEffect(() => {
     const currentIds = pets.map(p => p.id);
     const addCardId = 'add-pet-card';
-    
+
     setPetsOrder(prev => {
       // First initialization
       if (prev.length === 0) {
         return [...currentIds, addCardId];
       }
-      
+
       // Filter out IDs that no longer exist
       const filteredPrev = prev.filter(id => id === addCardId || currentIds.includes(id));
       // Find IDs that are new
       const missingIds = currentIds.filter(id => !prev.includes(id));
-      
+
       if (missingIds.length === 0 && filteredPrev.length === prev.length) return prev;
 
       // Ensure 'add-pet-card' is not covering real pets on initial data load
@@ -122,7 +122,7 @@ export default function DashboardPage() {
         const secondary = filteredPrev.slice(addCardIndex);
         return [...primary, ...missingIds, ...secondary];
       }
-      
+
       return [...filteredPrev, ...missingIds];
     });
   }, [pets]);
@@ -157,12 +157,12 @@ export default function DashboardPage() {
       }
     }
   }, [petsOrder, selectedPetId]);
-  
+
   // Notification States
   const [notificationCount, setNotificationCount] = useState(0);
   const [recentNotifications, setRecentNotifications] = useState<any[]>([]);
   const [isNotificationOpen, setIsNotificationOpen] = useState(false);
-  
+
   // Mailbox States
   const [isMailboxOpen, setIsMailboxOpen] = useState(false);
   const [selectedLetter, setSelectedLetter] = useState<any>(null);
@@ -170,15 +170,15 @@ export default function DashboardPage() {
 
   const mailboxLetters = useMemo(() => {
     if (!profile || pets.length === 0) return [];
-    
+
     const ownerName = profile.nickname || profile.name || '집사님';
     const letters: any[] = [];
     const today = new Date();
-    
+
     pets.forEach(pet => {
       const petCreatedDate = new Date(pet.created_at || Date.now());
       const isAnniversary = petCreatedDate.getMonth() === today.getMonth() && petCreatedDate.getDate() === today.getDate() && petCreatedDate.getFullYear() !== today.getFullYear();
-      
+
       // 1. 처음 만난 날 (Every pet has this as default welcome)
       letters.push({
         id: `welcome-${pet.id}`,
@@ -190,7 +190,7 @@ export default function DashboardPage() {
         date: petCreatedDate.toISOString(),
         isSpecial: false
       });
-      
+
       // 2. Anniversary letter
       if (isAnniversary) {
         letters.push({
@@ -204,7 +204,7 @@ export default function DashboardPage() {
           isSpecial: true
         });
       }
-      
+
       // 3. Heart > 100 
       const family = typeof profile.families === 'object' ? profile.families : undefined;
       const heartPoints = family?.heart_points || 0;
@@ -216,7 +216,7 @@ export default function DashboardPage() {
           petPhoto: pet.photo_url || null,
           title: '내 마음이 느껴져? 💕',
           content: `요즘 ${ownerName}가 나 엄청 챙겨주는 거 다 알고 있다구. 밥도 주고 놀아줘서 내 마음속 하트가 100% 꽉 찼어! 빵빵해! ${ownerName} 냄새 맡으면서 잘 때가 제일 좋아. 진짜 진짜 고마워!\n\n- 사랑 듬뿍 받은 ${pet.name}`,
-          date: new Date(Date.now() - 1000*60*60*24).toISOString(),
+          date: new Date(Date.now() - 1000 * 60 * 60 * 24).toISOString(),
           isSpecial: true
         });
       }
@@ -234,8 +234,8 @@ export default function DashboardPage() {
       });
 
     });
-    
-    return letters.sort((a,b) => new Date(b.date).getTime() - new Date(a.date).getTime());
+
+    return letters.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
   }, [profile, pets]);
 
   // Memoize Filtered and Grouped Activities
@@ -243,7 +243,7 @@ export default function DashboardPage() {
     const filtered = activities.filter(a => {
       const aDate = new Date(a.timestamp);
       const sDate = historySelectedDate;
-      
+
       if (selectedPetId && a.pet_id !== selectedPetId) return false;
 
       if (historyViewMode === 'day') {
@@ -254,11 +254,11 @@ export default function DashboardPage() {
         const monday = new Date(sDate);
         monday.setDate(sDate.getDate() - diffToMonday);
         monday.setHours(0, 0, 0, 0);
-        
+
         const sunday = new Date(monday);
         sunday.setDate(monday.getDate() + 6);
         sunday.setHours(23, 59, 59, 999);
-        
+
         return aDate >= monday && aDate <= sunday;
       } else {
         return aDate.getMonth() === sDate.getMonth() && aDate.getFullYear() === sDate.getFullYear();
@@ -278,12 +278,12 @@ export default function DashboardPage() {
   useEffect(() => {
     fetchData();
     fetchNotifications();
-    
+
     if (typeof window !== 'undefined') {
       try {
         const stored = localStorage.getItem('zipsa_read_letters');
         if (stored) setReadLetters(JSON.parse(stored));
-      } catch(e) {}
+      } catch (e) { }
     }
   }, []);
 
@@ -303,14 +303,14 @@ export default function DashboardPage() {
       const { data: authData } = await supabase.auth.getUser();
       const user = authData?.user;
       if (!user) return;
-      
+
       const { data: prof } = await supabase.from("profiles").select("id, family_id").eq("id", user.id).single();
       if (!prof || !prof.family_id) return;
 
       let lastCheck = localStorage.getItem('zipsa_last_notification_check');
       if (!lastCheck) {
-          lastCheck = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString();
-          localStorage.setItem('zipsa_last_notification_check', lastCheck);
+        lastCheck = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString();
+        localStorage.setItem('zipsa_last_notification_check', lastCheck);
       }
 
       const { data: petData } = await supabase.from('pets').select('id').eq('family_id', prof.family_id);
@@ -318,17 +318,17 @@ export default function DashboardPage() {
       const petIds = petData.map(p => p.id);
 
       const { data, error } = await supabase
-          .from('activities')
-          .select('id, type, details, timestamp, pets(name), profiles(nickname)')
-          .in('pet_id', petIds)
-          .neq('user_id', prof.id)
-          .gt('timestamp', lastCheck)
-          .order('timestamp', { ascending: false })
-          .limit(10);
-          
+        .from('activities')
+        .select('id, type, details, timestamp, pets(name), profiles(nickname)')
+        .in('pet_id', petIds)
+        .neq('user_id', prof.id)
+        .gt('timestamp', lastCheck)
+        .order('timestamp', { ascending: false })
+        .limit(10);
+
       if (!error && data) {
-          setRecentNotifications(data);
-          setNotificationCount(data.length);
+        setRecentNotifications(data);
+        setNotificationCount(data.length);
       }
     } catch (e) {
       console.error(e);
@@ -379,7 +379,7 @@ export default function DashboardPage() {
         .select("*, families(*)")
         .eq("id", user.id)
         .maybeSingle();
-      
+
       if (profileError) {
         console.error("Dashboard Profile Fetch Error:", JSON.stringify(profileError, null, 2));
         throw new Error(profileError.message || "프로필 정보를 가져오는데 실패했습니다.");
@@ -401,7 +401,7 @@ export default function DashboardPage() {
             .select("name, nickname")
             .eq("id", profileData.families.created_by)
             .maybeSingle();
-          
+
           if (leaderData) {
             profileData.families.leader = leaderData;
           }
@@ -454,7 +454,7 @@ export default function DashboardPage() {
               .from("profiles")
               .select("id, name, nickname")
               .eq("family_id", profileData.family_id);
-            
+
             if (membersError) {
               console.error("Dashboard Members Fetch Error:", membersError.message);
             } else if (membersData) {
@@ -482,10 +482,10 @@ export default function DashboardPage() {
   useEffect(() => {
     const subscription = supabase
       .channel('dashboard_realtime')
-      .on('postgres_changes', { 
-        event: '*', 
-        schema: 'public', 
-        table: 'activities' 
+      .on('postgres_changes', {
+        event: '*',
+        schema: 'public',
+        table: 'activities'
       }, () => {
         fetchData(true);
         fetchNotifications();
@@ -517,7 +517,7 @@ export default function DashboardPage() {
       .from('pets')
       .update({ medications: healthDraft })
       .eq('id', selectedPetId);
-    
+
     if (error) {
       alert("건강 정보 수정에 실패했습니다.");
     } else {
@@ -536,7 +536,7 @@ export default function DashboardPage() {
         .eq('id', profile.family_id);
 
       if (error) throw error;
-      
+
       const updatedProfile = {
         ...profile,
         families: {
@@ -590,7 +590,7 @@ export default function DashboardPage() {
       return;
     }
     setIsSubmitting(true);
-    
+
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) {
       alert("로그인이 필요합니다.");
@@ -626,8 +626,8 @@ export default function DashboardPage() {
       const family = profile.families;
 
       const today = new Date().toISOString().split('T')[0];
-      const activitiesToday = activities.filter(a => 
-        a.timestamp.startsWith(today) && 
+      const activitiesToday = activities.filter(a =>
+        a.timestamp.startsWith(today) &&
         a.type === recordingType
       );
 
@@ -671,7 +671,7 @@ export default function DashboardPage() {
       if (actResult.data) {
         setActivities([actResult.data[0] as unknown as Activity, ...activities]);
       }
-      
+
       setProfile({
         ...profile,
         families: {
@@ -707,10 +707,10 @@ export default function DashboardPage() {
       if (isToday && family) {
         let pointsToDeduct = 0;
         const type = activityToDelete.type;
-        
-        const othersOfSameTypeToday = activities.filter(a => 
-          a.id !== id && 
-          a.timestamp.startsWith(today) && 
+
+        const othersOfSameTypeToday = activities.filter(a =>
+          a.id !== id &&
+          a.timestamp.startsWith(today) &&
           a.type === type
         );
 
@@ -719,13 +719,13 @@ export default function DashboardPage() {
         else if (type === '간식 먹이기' && othersOfSameTypeToday.length < 2) pointsToDeduct = 5;
 
         const anyOthersToday = activities.filter(a => a.id !== id && a.timestamp.startsWith(today));
-        
+
         let newActiveDays = family.active_days_count;
         let newLastDate = family.last_activity_date;
 
         if (anyOthersToday.length === 0) {
           newActiveDays = Math.max(0, (family.active_days_count || 0) - 1);
-          newLastDate = null; 
+          newLastDate = null;
         }
 
         const newHeartPoints = Math.max(0, (family.heart_points || 0) - pointsToDeduct);
@@ -927,7 +927,7 @@ export default function DashboardPage() {
           name: familyDraftName.trim()
         }
       });
-      setMyFamilies(prev => prev.map(fam => 
+      setMyFamilies(prev => prev.map(fam =>
         fam.id === profile.family_id ? { ...fam, name: familyDraftName.trim() } : fam
       ));
       alert("가족 그룹 이름이 변경되었습니다.");
@@ -999,9 +999,8 @@ export default function DashboardPage() {
                         setRecordData({ ...recordData, type: med.name });
                         setRecordStep(2);
                       }}
-                      className={`group p-5 rounded-2xl border transition-all text-left flex justify-between items-center ${
-                        recordData.type === med.name ? 'border-black bg-black text-white' : 'border-zinc-100 hover:border-zinc-300 bg-white'
-                      }`}
+                      className={`group p-5 rounded-2xl border transition-all text-left flex justify-between items-center ${recordData.type === med.name ? 'border-black bg-black text-white' : 'border-zinc-100 hover:border-zinc-300 bg-white'
+                        }`}
                     >
                       <div className="space-y-1">
                         <p className="text-sm font-semibold">{med.name}</p>
@@ -1009,9 +1008,8 @@ export default function DashboardPage() {
                           {med.frequency} 복용 중
                         </p>
                       </div>
-                      <div className={`w-6 h-6 rounded-full border flex items-center justify-center transition-colors ${
-                        recordData.type === med.name ? 'border-zinc-700 bg-zinc-800' : 'border-zinc-100 bg-zinc-50 group-hover:border-zinc-200'
-                      }`}>
+                      <div className={`w-6 h-6 rounded-full border flex items-center justify-center transition-colors ${recordData.type === med.name ? 'border-zinc-700 bg-zinc-800' : 'border-zinc-100 bg-zinc-50 group-hover:border-zinc-200'
+                        }`}>
                         <div className={`w-2 h-2 rounded-full ${recordData.type === med.name ? 'bg-white' : 'bg-transparent'}`} />
                       </div>
                     </button>
@@ -1028,14 +1026,12 @@ export default function DashboardPage() {
                     setRecordData({ ...recordData, type: '기타' });
                     setRecordStep(2);
                   }}
-                  className={`p-5 rounded-2xl border transition-all text-left flex justify-between items-center ${
-                    recordData.type === '기타' ? 'border-black bg-black text-white' : 'border-zinc-100 hover:border-zinc-300 bg-white border-dashed mt-4'
-                  }`}
+                  className={`p-5 rounded-2xl border transition-all text-left flex justify-between items-center ${recordData.type === '기타' ? 'border-black bg-black text-white' : 'border-zinc-100 hover:border-zinc-300 bg-white border-dashed mt-4'
+                    }`}
                 >
                   <p className="text-sm font-medium">기타 (직접 입력)</p>
-                  <div className={`w-6 h-6 rounded-full border flex items-center justify-center transition-colors ${
-                    recordData.type === '기타' ? 'border-zinc-700 bg-zinc-800' : 'border-zinc-100 bg-zinc-50'
-                  }`}>
+                  <div className={`w-6 h-6 rounded-full border flex items-center justify-center transition-colors ${recordData.type === '기타' ? 'border-zinc-700 bg-zinc-800' : 'border-zinc-100 bg-zinc-50'
+                    }`}>
                     <div className={`w-2 h-2 rounded-full ${recordData.type === '기타' ? 'bg-white' : 'bg-transparent'}`} />
                   </div>
                 </button>
@@ -1057,7 +1053,7 @@ export default function DashboardPage() {
               />
               <div className="flex gap-3 pt-6">
                 <button onClick={() => setRecordStep(1)} className="flex-1 py-4 text-sm font-medium border border-zinc-100 rounded-xl hover:bg-zinc-50">이전으로</button>
-                <button 
+                <button
                   disabled={isSubmitting || (recordData.type === '기타' && !recordData.memo)}
                   onClick={handleRecordActivity}
                   className="flex-[2] py-4 text-sm font-medium bg-black text-white rounded-xl"
@@ -1109,9 +1105,8 @@ export default function DashboardPage() {
                       setRecordData({ ...recordData, type: t });
                       setRecordStep(2);
                     }}
-                    className={`py-4 px-6 text-sm rounded-xl border transition-all ${
-                      recordData.type === t ? 'border-black bg-black text-white' : 'border-zinc-100 text-zinc-500 hover:border-zinc-300'
-                    }`}
+                    className={`py-4 px-6 text-sm rounded-xl border transition-all ${recordData.type === t ? 'border-black bg-black text-white' : 'border-zinc-100 text-zinc-500 hover:border-zinc-300'
+                      }`}
                   >
                     {t}
                   </button>
@@ -1138,9 +1133,8 @@ export default function DashboardPage() {
                     <button
                       key={unit}
                       onClick={() => setRecordData({ ...recordData, amountUnit: unit })}
-                      className={`px-4 py-2 text-[10px] uppercase tracking-widest border transition-all ${
-                        recordData.amountUnit === unit ? 'border-black bg-black text-white' : 'border-zinc-100 text-[#888888] hover:border-zinc-200'
-                      }`}
+                      className={`px-4 py-2 text-[10px] uppercase tracking-widest border transition-all ${recordData.amountUnit === unit ? 'border-black bg-black text-white' : 'border-zinc-100 text-[#888888] hover:border-zinc-200'
+                        }`}
                     >
                       {unit}
                     </button>
@@ -1149,7 +1143,7 @@ export default function DashboardPage() {
               </div>
               <div className="flex gap-3 pt-6">
                 <button onClick={() => setRecordStep(1)} className="flex-1 py-4 text-sm font-medium border border-zinc-100 rounded-xl">이전으로</button>
-                <button 
+                <button
                   disabled={!recordData.amountValue || isSubmitting}
                   onClick={handleRecordActivity}
                   className="flex-[2] py-4 text-sm font-medium bg-black text-white rounded-xl disabled:bg-zinc-100"
@@ -1216,9 +1210,8 @@ export default function DashboardPage() {
                     <button
                       key={time}
                       onClick={() => setRecordData({ ...recordData, duration: time })}
-                      className={`px-4 py-2 text-[10px] tracking-widest border transition-all ${
-                        recordData.duration === time ? 'border-black bg-black text-white' : 'border-zinc-100 text-[#888888] hover:border-zinc-200'
-                      }`}
+                      className={`px-4 py-2 text-[10px] tracking-widest border transition-all ${recordData.duration === time ? 'border-black bg-black text-white' : 'border-zinc-100 text-[#888888] hover:border-zinc-200'
+                        }`}
                     >
                       {time}분
                     </button>
@@ -1243,9 +1236,8 @@ export default function DashboardPage() {
                   <button
                     key={mood.value}
                     onClick={() => setRecordData({ ...recordData, mood: mood.value })}
-                    className={`py-4 px-6 text-sm rounded-xl border text-left transition-all ${
-                      recordData.mood === mood.value ? 'border-black bg-black text-white' : 'border-zinc-100 text-zinc-500 hover:border-zinc-300'
-                    }`}
+                    className={`py-4 px-6 text-sm rounded-xl border text-left transition-all ${recordData.mood === mood.value ? 'border-black bg-black text-white' : 'border-zinc-100 text-zinc-500 hover:border-zinc-300'
+                      }`}
                   >
                     {mood.label}
                   </button>
@@ -1386,24 +1378,24 @@ export default function DashboardPage() {
         <div className="flex items-center gap-6 relative">
           <div className="flex items-center gap-4 pr-4 border-r border-zinc-100">
             <div className="relative">
-              <button 
-                onClick={() => { 
-                  setIsNotificationOpen(!isNotificationOpen); 
+              <button
+                onClick={() => {
+                  setIsNotificationOpen(!isNotificationOpen);
                   if (!isNotificationOpen) {
                     setNotificationCount(0);
                     localStorage.setItem('zipsa_last_notification_check', new Date().toISOString());
                   }
-                }} 
+                }}
                 className="text-zinc-200 hover:text-black transition-colors relative flex items-center justify-center p-1"
               >
-                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"><path d="M6 8a6 6 0 0 1 12 0c0 7 3 9 3 9H3s3-2 3-9"/><path d="M10.3 21a1.94 1.94 0 0 0 3.4 0"/></svg>
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"><path d="M6 8a6 6 0 0 1 12 0c0 7 3 9 3 9H3s3-2 3-9" /><path d="M10.3 21a1.94 1.94 0 0 0 3.4 0" /></svg>
                 {notificationCount > 0 && (
                   <span className="absolute 0 -right-1 w-3.5 h-3.5 bg-red-500 rounded-full flex items-center justify-center text-[8px] font-semibold text-white shadow-sm ring-[1.5px] ring-white">
                     {notificationCount > 9 ? '9+' : notificationCount}
                   </span>
                 )}
               </button>
-              
+
               <AnimatePresence>
                 {isNotificationOpen && (
                   <>
@@ -1441,7 +1433,7 @@ export default function DashboardPage() {
             </div>
             <div className="relative">
               <button onClick={() => setIsMailboxOpen(!isMailboxOpen)} className="text-zinc-200 hover:text-black transition-colors flex items-center justify-center p-1 relative">
-                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"><rect width="20" height="16" x="2" y="4" rx="2"/><path d="m22 7-8.97 5.7a1.94 1.94 0 0 1-2.06 0L2 7"/></svg>
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"><rect width="20" height="16" x="2" y="4" rx="2" /><path d="m22 7-8.97 5.7a1.94 1.94 0 0 1-2.06 0L2 7" /></svg>
                 {(() => {
                   const unreadCount = mailboxLetters.filter(l => !readLetters.includes(l.id)).length;
                   if (unreadCount > 0) {
@@ -1463,7 +1455,7 @@ export default function DashboardPage() {
                       {selectedLetter ? (
                         <div className="p-5 relative min-h-[300px] flex flex-col items-center text-center">
                           <button onClick={() => setSelectedLetter(null)} className="absolute top-4 left-4 p-1 text-[#888888] hover:text-black">
-                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M15 18l-6-6 6-6"/></svg>
+                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M15 18l-6-6 6-6" /></svg>
                           </button>
                           <div className="w-12 h-12 rounded-full overflow-hidden bg-white border-2 border-[#efe9dc] mb-4 mt-2 flex items-center justify-center shrink-0 shadow-sm">
                             {selectedLetter.petPhoto ? <img src={selectedLetter.petPhoto} className="w-full h-full object-cover" alt="" /> : <span className="text-xl">🐾</span>}
@@ -1548,7 +1540,7 @@ export default function DashboardPage() {
                       ) : activeMyPageTab === 'profile' ? (
                         <div className="p-1.5 space-y-4 animate-in fade-in slide-in-from-right-1 duration-200">
                           <div className="flex items-center gap-2 mb-1 px-1">
-                            <button onClick={() => setActiveMyPageTab('root')} className="p-1 text-[#888888] hover:text-black"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><path d="M15 18l-6-6 6-6"/></svg></button>
+                            <button onClick={() => setActiveMyPageTab('root')} className="p-1 text-[#888888] hover:text-black"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><path d="M15 18l-6-6 6-6" /></svg></button>
                             <span className="text-[10px] font-semibold uppercase tracking-tight">나의 정보 수정</span>
                           </div>
                           <div className="space-y-3 px-1">
@@ -1566,7 +1558,7 @@ export default function DashboardPage() {
                       ) : (
                         <div className="p-1.5 space-y-3 animate-in fade-in slide-in-from-right-1 duration-200">
                           <div className="flex items-center gap-2 mb-1 px-1">
-                            <button onClick={() => setActiveMyPageTab('root')} className="p-1 -ml-1 text-[#888888] hover:text-black"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><path d="M15 18l-6-6 6-6"/></svg></button>
+                            <button onClick={() => setActiveMyPageTab('root')} className="p-1 -ml-1 text-[#888888] hover:text-black"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><path d="M15 18l-6-6 6-6" /></svg></button>
                             <span className="text-[10px] font-semibold uppercase tracking-tight">가족 구성원</span>
                           </div>
                           <div className="space-y-2.5">
@@ -1578,7 +1570,7 @@ export default function DashboardPage() {
                                     <input type="text" className="flex-1 px-3 py-2.5 bg-white rounded-xl text-[10px] font-semibold border border-zinc-100 focus:border-black outline-none transition-all placeholder:text-zinc-200 min-w-0" value={familyDraftName} onChange={(e) => setFamilyDraftName(e.target.value)} placeholder="이름 입력" />
                                     <button onClick={handleUpdateFamilyName} disabled={isSubmitting || familyDraftName === profile?.families?.name} className="flex-shrink-0 px-3 py-2.5 bg-black text-white text-[9px] font-semibold rounded-lg disabled:bg-zinc-100 disabled:text-zinc-300 transition-all active:scale-[0.95]">{isSubmitting ? "..." : "저장"}</button>
                                   </div>
-                                ) : ( <p className="text-[11px] font-semibold text-[#1A1A1A] px-1">{profile?.families?.name}</p> )}
+                                ) : (<p className="text-[11px] font-semibold text-[#1A1A1A] px-1">{profile?.families?.name}</p>)}
                               </div>
                               <div className="pt-3 border-t border-zinc-100 space-y-1">
                                 <span className="text-[7px] text-[#888888] uppercase tracking-widest font-mono">가족 초대 코드</span>
@@ -1589,11 +1581,11 @@ export default function DashboardPage() {
                               </div>
                             </div>
                             <div className="space-y-1 max-h-[160px] overflow-y-auto pr-1 custom-scrollbar">
-                              {familyMembers.length > 0 ? ( familyMembers.map((member: any) => (
+                              {familyMembers.length > 0 ? (familyMembers.map((member: any) => (
                                 <div key={member.id} className="flex items-center gap-2 p-2 rounded-lg border border-zinc-50 bg-white">
                                   <div className="w-5 h-5 rounded-full bg-zinc-100 flex items-center justify-center text-[7px] font-semibold text-[#888888] overflow-hidden shrink-0"> {member.nickname?.[0] || member.name?.[0] || '?'} </div>
-                                  <p className="text-[9px] font-semibold truncate flex-1 flex items-center gap-1"> {member.nickname || member.name || '이름 없음'} 
-                                    {member.id === profile?.families?.created_by && ( <span className="text-[7px] bg-zinc-900 text-white px-1.5 py-0.5 rounded-full font-semibold uppercase tracking-tighter scale-90">방장</span> )}
+                                  <p className="text-[9px] font-semibold truncate flex-1 flex items-center gap-1"> {member.nickname || member.name || '이름 없음'}
+                                    {member.id === profile?.families?.created_by && (<span className="text-[7px] bg-zinc-900 text-white px-1.5 py-0.5 rounded-full font-semibold uppercase tracking-tighter scale-90">방장</span>)}
                                     {member.id === profile?.id && <span className="text-[7px] text-zinc-300 font-normal">나</span>}
                                   </p>
                                   {profile?.families?.created_by === profile?.id && member.id !== profile?.id && (
@@ -1602,7 +1594,7 @@ export default function DashboardPage() {
                                       <button onClick={() => handleRemoveMember(member.id, member.nickname || member.name)} className="text-[8px] text-[#888888] hover:text-red-500 transition-colors font-medium">삭제</button>
                                     </div>
                                   )}
-                                </div> ))) : ( <p className="text-[8px] text-zinc-300 text-center py-4">합류한 멤버가 없습니다</p> )}
+                                </div>))) : (<p className="text-[8px] text-zinc-300 text-center py-4">합류한 멤버가 없습니다</p>)}
                             </div>
                             <div className="pt-2 border-t border-zinc-50 mt-1 space-y-1">
                               <button onClick={handleLeaveFamily} className="w-full py-2 text-[8px] text-zinc-100 hover:text-red-500 transition-colors uppercase tracking-widest font-semibold">가족 그룹 탈퇴하기</button>
@@ -1619,12 +1611,12 @@ export default function DashboardPage() {
         </div>
       </nav>
 
-      <div className="max-w-[800px] mx-auto px-6 pt-12 pb-28 space-y-12">
+      <div className="max-w-[800px] mx-auto px-6 pt-5 pb-28 space-y-12">
         <section className="space-y-4">
           <div className="flex flex-col gap-1.5">
             <div className="relative">
               <button onClick={() => { fetchMyFamilies(); setShowInlineFamilies(!showInlineFamilies); }} className="flex items-center gap-1.5 group">
-                <h1 className="text-2xl font-semibold tracking-tight text-[#1A1A1A] flex items-center gap-1.5">
+                <h1 className="text-[15pt] font-semibold tracking-tight text-[#1A1A1A] flex items-center gap-1.5">
                   {(() => {
                     let name = profile?.families?.name || '가족 선택';
                     const leader = (profile?.families as any)?.leader;
@@ -1668,7 +1660,7 @@ export default function DashboardPage() {
                               </button>
                             ))}
                           </div>
-                        ) : ( <div className="py-8 text-center"><p className="text-[10px] text-zinc-300 uppercase tracking-widest italic">가족 목록을 불러오는 중...</p></div> )}
+                        ) : (<div className="py-8 text-center"><p className="text-[10px] text-zinc-300 uppercase tracking-widest italic">가족 목록을 불러오는 중...</p></div>)}
                         <div className="mt-2 pt-2 border-t border-zinc-50">
                           <Link href="/dashboard/family/create" className="flex items-center justify-center gap-2 p-3 text-[10px] text-zinc-500 font-semibold hover:text-black transition-colors"><span>+</span> 새 가족 만들기 / 합류하기</Link>
                         </div>
@@ -1691,44 +1683,64 @@ export default function DashboardPage() {
           const today = new Date().toISOString().split('T')[0];
           const activitiesToday = activities.filter(a => a.timestamp.startsWith(today));
           return (
-            <motion.section initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} className="space-y-12 pb-10">
+            <motion.section initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} className="space-y-12 pb-40">
               <div className="space-y-3">
                 <span className="text-[10pt] tracking-[0.3em] text-[#888888] uppercase font-pixel">포켓룸</span>
-                <div className="relative aspect-video sm:aspect-[21/9] bg-white border-[1px] border-zinc-900 rounded-2xl overflow-hidden flex items-center justify-center group shadow-2xl shadow-zinc-100">
-                  <div className="absolute top-6 left-8 flex flex-col gap-1.5">
-                    <div className="flex items-center gap-2">
-                      <div className="w-1.5 h-1.5 rounded-full bg-red-500 animate-pulse" />
-                      {isEditingTamagotchi ? (
-                        <div className="flex items-center gap-2 animate-in slide-in-from-left-1 duration-300">
-                          <input 
-                            autoFocus
-                            type="text" 
-                            className="text-[9px] font-pixel bg-white border border-black px-1.5 py-0.5 rounded-sm outline-none w-24 tracking-widest uppercase font-semibold" 
-                            value={tamagotchiNameDraft} 
-                            onChange={(e) => setTamagotchiNameDraft(e.target.value)}
-                            onKeyDown={(e) => e.key === 'Enter' && handleUpdateTamagotchiName()}
-                            placeholder="이름 입력"
-                          />
-                          <button onClick={handleUpdateTamagotchiName} className="text-[7px] text-[#1A1A1A] font-semibold uppercase transition-transform hover:scale-105">SAVE</button>
-                          <button onClick={() => setIsEditingTamagotchi(false)} className="text-[7px] text-[#888888] uppercase transition-transform hover:scale-105">ESC</button>
-                        </div>
-                      ) : (
-                        <div className="flex items-center gap-3 group relative">
-                          <span className="text-[9px] font-pixel text-[#1A1A1A] tracking-widest uppercase font-semibold">{family.tamagotchi_name || '?'}</span>
-                          {(!family.tamagotchi_name || family.tamagotchi_name === '?') && (
-                            <button onClick={() => { setTamagotchiNameDraft(''); setIsEditingTamagotchi(true); }} className="text-[7px] text-zinc-300 hover:text-black transition-colors opacity-0 group-hover:opacity-100 uppercase tracking-tighter font-pixel">이름짓기</button>
+                <div className={`relative aspect-video sm:aspect-[21/9] border-[1px] rounded-2xl overflow-hidden flex items-center justify-center group shadow-2xl transition-all duration-1000 ${(family.heart_points || 0) === 0
+                    ? 'bg-[#0A0A0A] border-zinc-800 shadow-black/40'
+                    : 'bg-white border-zinc-900 shadow-zinc-100'
+                  }`}>
+                  {(family.heart_points || 0) === 0 ? (
+                    <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="flex flex-col items-center gap-4 text-center px-8">
+                      <motion.div animate={{ opacity: [0.3, 0.6, 0.3], scale: [1, 1.05, 1] }} transition={{ duration: 4, repeat: Infinity }} className="text-3xl filter grayscale opacity-50">✨</motion.div>
+                      <div className="space-y-1">
+                        <p className="text-[11pt] font-pixel text-zinc-500 tracking-[0.2em] uppercase">Private Space</p>
+                        <p className="text-[10pt] font-pixel text-zinc-700 tracking-tighter">기록이 쌓이면 생명의 알이 찾아옵니다</p>
+                      </div>
+                    </motion.div>
+                  ) : (
+                    <>
+                      <div className="absolute top-6 left-8 flex flex-col gap-1.5">
+                        <div className="flex items-center gap-2">
+                          <div className="w-1.5 h-1.5 rounded-full bg-red-500 animate-pulse" />
+                          {isEditingTamagotchi ? (
+                            <div className="flex items-center gap-2 animate-in slide-in-from-left-1 duration-300">
+                              <input
+                                autoFocus
+                                type="text"
+                                className="text-[10pt] font-pixel bg-white border border-black px-1.5 py-0.5 rounded-sm outline-none w-24 tracking-widest uppercase font-semibold"
+                                value={tamagotchiNameDraft}
+                                onChange={(e) => setTamagotchiNameDraft(e.target.value)}
+                                onKeyDown={(e) => e.key === 'Enter' && handleUpdateTamagotchiName()}
+                                placeholder="이름 입력"
+                              />
+                              <button onClick={handleUpdateTamagotchiName} className="text-[10pt] text-[#1A1A1A] font-semibold uppercase transition-transform hover:scale-105">SAVE</button>
+                              <button onClick={() => setIsEditingTamagotchi(false)} className="text-[10pt] text-[#888888] uppercase transition-transform hover:scale-105">ESC</button>
+                            </div>
+                          ) : (
+                            <div className="flex items-center gap-3 group relative">
+                              <span className="text-[11pt] font-pixel text-[#1A1A1A] tracking-widest uppercase font-semibold">{family.tamagotchi_name || '?'}</span>
+                              {(!family.tamagotchi_name || family.tamagotchi_name === '?') && (
+                                <button onClick={() => { setTamagotchiNameDraft(''); setIsEditingTamagotchi(true); }} className="text-[10pt] text-zinc-300 hover:text-black transition-colors opacity-0 group-hover:opacity-100 uppercase tracking-tighter font-pixel">이름짓기</button>
+                              )}
+                            </div>
                           )}
                         </div>
-                      )}
-                    </div>
-                    <span className="text-[9px] text-[#888888] font-pixel tracking-tighter">상태: {family.is_hatched ? '부화함' : '대기 중'}</span>
-                  </div>
-                  <div className="absolute bottom-6 left-8 right-8 flex justify-between items-end">
-                    <div className="space-y-4 w-full max-w-[140px]">
-                      <div className="flex justify-between items-end"><span className="text-[10px] filter grayscale group-hover:grayscale-0 transition-all">❤️</span><span className="text-[10px] text-[#1A1A1A] font-semibold font-pixel">{family.heart_points || 0}%</span></div>
-                      <div className="h-[3px] w-full bg-zinc-50 rounded-full overflow-hidden"><motion.div initial={{ width: 0 }} animate={{ width: `${family.heart_points || 0}%` }} className="h-full bg-black" /></div>
-                    </div>
-                  </div>
+                        <span className="text-[10pt] text-[#888888] font-pixel tracking-tighter">상태: {family.is_hatched ? '부화함' : '대기 중'}</span>
+                      </div>
+
+                      <div className="absolute bottom-6 left-8 right-8 flex justify-between items-end">
+                        <div className="space-y-4 w-full max-w-[140px]">
+                          <div className="flex justify-between items-end">
+                            <span className="text-[11pt] filter grayscale group-hover:grayscale-0 transition-all">❤️</span>
+                          </div>
+                          <div className="h-[3px] w-full bg-zinc-50 rounded-full overflow-hidden">
+                            <motion.div initial={{ width: 0 }} animate={{ width: `${family.heart_points || 0}%` }} className="h-full bg-black" />
+                          </div>
+                        </div>
+                      </div>
+                    </>
+                  )}
                 </div>
               </div>
               {(family.heart_points >= 100 && family.active_days_count >= 7 && !family.is_hatched) && (
@@ -1761,17 +1773,17 @@ export default function DashboardPage() {
                         key={id}
                         layout
                         initial={{ scale: 0.8, y: 40, opacity: 0 }}
-                        animate={{ 
-                          scale: 1 - index * 0.05, 
-                          y: index * 12, 
+                        animate={{
+                          scale: 1 - index * 0.05,
+                          y: index * 12,
                           zIndex: 10 - index,
                           opacity: 1,
                           filter: index === 0 ? 'blur(0px)' : 'blur(1px)',
                           rotate: index === 1 ? 2 : index === 2 ? -2 : 0
                         }}
-                        exit={{ 
-                          x: isTop ? (Math.random() > 0.5 ? 200 : -200) : 0, 
-                          opacity: 0, 
+                        exit={{
+                          x: isTop ? (Math.random() > 0.5 ? 200 : -200) : 0,
+                          opacity: 0,
                           scale: 0.8,
                           transition: { duration: 0.3 }
                         }}
@@ -1828,346 +1840,346 @@ export default function DashboardPage() {
               </div>
             </section>
 
-        <section className="pt-12 pb-4 space-y-8">
-          <h3 className="text-[13pt] tracking-widest text-[#1A1A1A] uppercase font-semibold">🗒️ 오늘 하루를 기록해주세요!</h3>
-          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 gap-4">
-            {((): string[] => {
-              const selectedPet = pets.find(p => p.id === selectedPetId);
-              const species = (selectedPet?.species || '').toLowerCase();
-              const activityLabel = species.includes('고양이') ? '사냥놀이하기' : (species.includes('햄스터') ? '운동시키기' : (species.includes('토끼') || species.includes('새') ? '자유시간주기' : '산책하기'));
-              return ['밥 먹이기', activityLabel, '약 먹이기', '간식 먹이기', '기타'];
-              })().map((type) => ( 
-                <button 
-                  key={type} 
-                  onClick={() => { setRecordingType(type); setRecordStep(1); setRecordData({ type: '', amountValue: '', amountUnit: 'g', memo: '', duration: '', mood: '' }); }} 
-                  className="group border border-zinc-100 p-8 space-y-6 hover:border-black transition-all text-left bg-white active:scale-[0.98]"
-                >
-                  <div className="w-9 h-9 bg-zinc-50 rounded-full flex items-center justify-center group-hover:bg-black group-hover:text-white transition-colors">
-                    <span className="text-[11pt] font-semibold">+</span>
-                  </div>
-                  <div className="space-y-1.5">
-                    <p className="text-[13pt] font-semibold text-[#1A1A1A]">{type}</p>
-                    <p className="text-[11pt] text-[#888888] uppercase tracking-tighter">간편 기록</p>
-                  </div>
-                </button> 
-              ))}
-          </div>
-        </section>
-
-        {(() => {
-          const selectedPet = pets.find(p => p.id === selectedPetId);
-          if (!selectedPet) return null;
-          const meds = Array.isArray(selectedPet.medications) ? selectedPet.medications : [];
-          return (
-            <section className="space-y-6">
-              <div className="flex justify-between items-end">
-                <h3 className="text-[13pt] tracking-widest text-[#1A1A1A] uppercase font-semibold">💊 {selectedPet.name}의 복용 중인 약</h3>
-                <Link href={`/dashboard/edit-pet/${selectedPet.id}`} className="text-[10pt] text-[#888888] hover:text-black transition-colors underline underline-offset-4">수정/관리하기</Link>
+            <section className="pt-12 pb-4 space-y-8">
+              <h3 className="text-[13pt] tracking-widest text-[#1A1A1A] uppercase font-semibold">🗒️ 오늘 하루를 기록해주세요!</h3>
+              <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 gap-4">
+                {((): string[] => {
+                  const selectedPet = pets.find(p => p.id === selectedPetId);
+                  const species = (selectedPet?.species || '').toLowerCase();
+                  const activityLabel = species.includes('고양이') ? '사냥놀이하기' : (species.includes('햄스터') ? '운동시키기' : (species.includes('토끼') || species.includes('새') ? '자유시간주기' : '산책하기'));
+                  return ['밥 먹이기', activityLabel, '약 먹이기', '간식 먹이기', '기타'];
+                })().map((type) => (
+                  <button
+                    key={type}
+                    onClick={() => { setRecordingType(type); setRecordStep(1); setRecordData({ type: '', amountValue: '', amountUnit: 'g', memo: '', duration: '', mood: '' }); }}
+                    className="group border border-zinc-100 p-8 space-y-6 hover:border-black transition-all text-left bg-white active:scale-[0.98]"
+                  >
+                    <div className="w-9 h-9 bg-zinc-50 rounded-full flex items-center justify-center group-hover:bg-black group-hover:text-white transition-colors">
+                      <span className="text-[11pt] font-semibold">+</span>
+                    </div>
+                    <div className="space-y-1.5">
+                      <p className="text-[13pt] font-semibold text-[#1A1A1A]">{type}</p>
+                      <p className="text-[11pt] text-[#888888] uppercase tracking-tighter">간편 기록</p>
+                    </div>
+                  </button>
+                ))}
               </div>
-              {meds.length > 0 ? (
-                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3"> 
-                  {meds.map((med: any) => (
-                    <div key={med.id} className="bg-zinc-50/50 p-5 rounded-2xl border border-zinc-100/50 flex items-center gap-4">
-                      <div className="w-10 h-10 bg-white rounded-xl flex items-center justify-center text-[13pt] border border-zinc-100 shadow-sm">💊</div>
-                      <div className="space-y-0.5">
-                        <p className="text-[11pt] font-semibold text-[#1A1A1A]">{med.name}</p>
-                        <p className="text-[10pt] text-[#888888] font-medium uppercase">{med.frequency}</p>
-                      </div>
-                    </div> 
-                  ))} 
-                </div>
-              ) : ( 
-                <div className="bg-zinc-50/30 p-8 rounded-2xl border border-dashed border-zinc-100 flex flex-center justify-center">
-                  <p className="text-[11pt] text-zinc-300 uppercase tracking-widest">등록된 복용 중인 약이 없습니다</p>
-                </div> 
-              )}
             </section>
-          );
-        })()}
 
-        <section className="space-y-8">
-          <h3 className="text-[13pt] tracking-widest text-[#1A1A1A] uppercase font-semibold">최근 기록</h3>
-          <div className="space-y-4">
-            {activities.filter(a => {
-              const isToday = new Date(a.timestamp).toDateString() === new Date().toDateString();
-              return a.pet_id === selectedPetId && isToday;
-            }).length > 0 ? (
-              activities.filter(a => {
-                const isToday = new Date(a.timestamp).toDateString() === new Date().toDateString();
-                return a.pet_id === selectedPetId && isToday;
-              }).map((activity) => (
-                <div key={activity.id} className="group relative py-6 border-b border-zinc-50 hover:bg-zinc-50/50 transition-colors px-2 -mx-2 rounded-2xl">
-                  <div className="flex justify-between items-start">
-                    <div className="flex items-center gap-4">
-                      <div className="w-11 h-11 rounded-xl bg-zinc-50 border border-zinc-100 flex items-center justify-center shrink-0 shadow-sm shadow-zinc-100/50">
-                        <span className="text-[16pt]">
-                          {activity.type === '밥 먹이기' ? '🥣' : 
-                          activity.type === '산책하기' ? '🦮' : 
-                          activity.type === '약 먹이기' ? '💊' : 
-                          activity.type === '놀아주기' ? '🧶' : '📝'}
-                        </span>
-                      </div>
-                      <div className="space-y-1">
-                        <div className="flex items-center gap-1.5"><span className="text-[10pt] font-semibold px-1.5 py-0.5 bg-zinc-50 rounded text-zinc-500 uppercase tracking-tighter">{(activity as any).profiles?.nickname || '집사'}</span><p className="text-[13pt] font-semibold text-[#1A1A1A]">{activity.type}</p></div>
-                        <p className="text-[11pt] text-[#888888] leading-relaxed font-light">{activity.details || '상세 내용 없음'}</p>
-                        <p className="text-[10pt] text-zinc-300 font-mono pt-1">{new Date(activity.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', hour12: false })}</p>
+            {(() => {
+              const selectedPet = pets.find(p => p.id === selectedPetId);
+              if (!selectedPet) return null;
+              const meds = Array.isArray(selectedPet.medications) ? selectedPet.medications : [];
+              return (
+                <section className="space-y-6">
+                  <div className="flex justify-between items-end">
+                    <h3 className="text-[13pt] tracking-widest text-[#1A1A1A] uppercase font-semibold">💊 {selectedPet.name}의 복용 중인 약</h3>
+                    <Link href={`/dashboard/edit-pet/${selectedPet.id}`} className="text-[10pt] text-[#888888] hover:text-black transition-colors underline underline-offset-4">수정/관리하기</Link>
+                  </div>
+                  {meds.length > 0 ? (
+                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+                      {meds.map((med: any) => (
+                        <div key={med.id} className="bg-zinc-50/50 p-5 rounded-2xl border border-zinc-100/50 flex items-center gap-4">
+                          <div className="w-10 h-10 bg-white rounded-xl flex items-center justify-center text-[13pt] border border-zinc-100 shadow-sm">💊</div>
+                          <div className="space-y-0.5">
+                            <p className="text-[11pt] font-semibold text-[#1A1A1A]">{med.name}</p>
+                            <p className="text-[10pt] text-[#888888] font-medium uppercase">{med.frequency}</p>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  ) : (
+                    <div className="bg-zinc-50/30 p-8 rounded-2xl border border-dashed border-zinc-100 flex flex-center justify-center">
+                      <p className="text-[11pt] text-zinc-300 uppercase tracking-widest">등록된 복용 중인 약이 없습니다</p>
+                    </div>
+                  )}
+                </section>
+              );
+            })()}
+
+            <section className="space-y-8">
+              <h3 className="text-[13pt] tracking-widest text-[#1A1A1A] uppercase font-semibold">최근 기록</h3>
+              <div className="space-y-4">
+                {activities.filter(a => {
+                  const isToday = new Date(a.timestamp).toDateString() === new Date().toDateString();
+                  return a.pet_id === selectedPetId && isToday;
+                }).length > 0 ? (
+                  activities.filter(a => {
+                    const isToday = new Date(a.timestamp).toDateString() === new Date().toDateString();
+                    return a.pet_id === selectedPetId && isToday;
+                  }).map((activity) => (
+                    <div key={activity.id} className="group relative py-6 border-b border-zinc-50 hover:bg-zinc-50/50 transition-colors px-2 -mx-2 rounded-2xl">
+                      <div className="flex justify-between items-start">
+                        <div className="flex items-center gap-4">
+                          <div className="w-11 h-11 rounded-xl bg-zinc-50 border border-zinc-100 flex items-center justify-center shrink-0 shadow-sm shadow-zinc-100/50">
+                            <span className="text-[16pt]">
+                              {activity.type === '밥 먹이기' ? '🥣' :
+                                activity.type === '산책하기' ? '🦮' :
+                                  activity.type === '약 먹이기' ? '💊' :
+                                    activity.type === '놀아주기' ? '🧶' : '📝'}
+                            </span>
+                          </div>
+                          <div className="space-y-1">
+                            <div className="flex items-center gap-1.5"><span className="text-[10pt] font-semibold px-1.5 py-0.5 bg-zinc-50 rounded text-zinc-500 uppercase tracking-tighter">{(activity as any).profiles?.nickname || '집사'}</span><p className="text-[13pt] font-semibold text-[#1A1A1A]">{activity.type}</p></div>
+                            <p className="text-[11pt] text-[#888888] leading-relaxed font-light">{activity.details || '상세 내용 없음'}</p>
+                            <p className="text-[10pt] text-zinc-300 font-mono pt-1">{new Date(activity.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', hour12: false })}</p>
+                          </div>
+                        </div>
+                        {activity.user_id === profile?.id && (
+                          <div className="flex gap-4 opacity-100 md:opacity-0 md:group-hover:opacity-100 transition-opacity">
+                            <button onClick={() => { setEditingActivity(activity); if (activity.type === '밥 먹이기') { const [typePart, amountPart] = activity.details.split(' - '); const amountMatch = amountPart?.match(/^(\d+)(.*)$/); setEditMealData({ type: typePart || '', amountValue: amountMatch?.[1] || '', amountUnit: amountMatch?.[2] || 'g' }); } else { setEditDetails(activity.details); } }} className="text-[10pt] text-[#888888] hover:text-black">수정</button>
+                            <button onClick={() => handleDeleteActivity(activity.id)} className="text-[10pt] text-zinc-200 hover:text-red-400">삭제</button>
+                          </div>
+                        )}
                       </div>
                     </div>
-                    {activity.user_id === profile?.id && (
-                      <div className="flex gap-4 opacity-100 md:opacity-0 md:group-hover:opacity-100 transition-opacity">
-                        <button onClick={() => { setEditingActivity(activity); if (activity.type === '밥 먹이기') { const [typePart, amountPart] = activity.details.split(' - '); const amountMatch = amountPart?.match(/^(\d+)(.*)$/); setEditMealData({ type: typePart || '', amountValue: amountMatch?.[1] || '', amountUnit: amountMatch?.[2] || 'g' }); } else { setEditDetails(activity.details); } }} className="text-[10pt] text-[#888888] hover:text-black">수정</button>
-                        <button onClick={() => handleDeleteActivity(activity.id)} className="text-[10pt] text-zinc-200 hover:text-red-400">삭제</button>
-                      </div>
-                    )}
-                  </div>
-                </div>
-              ))
-            ) : ( <p className="text-[10pt] text-zinc-300 py-10 text-center uppercase tracking-widest italic font-light">최근 기록이 없습니다.</p> )}
-          </div>
-        </section>
+                  ))
+                ) : (<p className="text-[10pt] text-zinc-300 py-10 text-center uppercase tracking-widest italic font-light">최근 기록이 없습니다.</p>)}
+              </div>
+            </section>
           </>
         )}
 
         {activeBottomTab === 'calendar' && (
           <section className="space-y-12 border-t border-zinc-50 pt-2">
-          <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-6">
-            <div className="space-y-1">
-              <h3 className="text-[13pt] tracking-widest text-[#1A1A1A] uppercase font-semibold">활동 히스토리</h3>
-              <h4 className="text-[13pt] font-light tracking-tight text-[#1A1A1A]">
-                {historySelectedDate.getFullYear()}년 {historySelectedDate.getMonth() + 1}월
-              </h4>
-            </div>
-            
-            <div className="flex bg-zinc-50 p-1 rounded-lg w-full sm:w-auto">
-              {(['day', 'week', 'month'] as const).map((mode) => (
-                <button
-                  key={mode}
-                  onClick={() => setHistoryViewMode(mode)}
-                  className={`flex-1 sm:px-4 py-1.5 text-[11pt] font-semibold uppercase tracking-widest transition-all rounded-md ${
-                    historyViewMode === mode ? 'bg-white text-[#1A1A1A] shadow-sm' : 'text-[#888888] hover:text-[#1A1A1A]'
-                  }`}
-                >
-                  {mode === 'day' ? '일' : mode === 'week' ? '주' : '월'}
-                </button>
-              ))}
-            </div>
-          </div>
-
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-12">
-            {/* Calendar View */}
-            <div className="bg-white border border-zinc-900 rounded-3xl p-6 shadow-2xl shadow-zinc-100/50">
-              <div className="flex items-center justify-between mb-6">
-                <button 
-                  onClick={() => {
-                    const d = new Date(historySelectedDate);
-                    if (historyViewMode === 'day') d.setDate(d.getDate() - 1);
-                    else if (historyViewMode === 'week') d.setDate(d.getDate() - 7);
-                    else d.setMonth(d.getMonth() - 1);
-                    setHistorySelectedDate(d);
-                  }} 
-                  className="p-2 hover:bg-zinc-50 rounded-full transition-colors text-zinc-300 hover:text-[#1A1A1A]"
-                >
-                  <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1} d="M15 19l-7-7 7-7" /></svg>
-                </button>
-                <button 
-                  onClick={() => {
-                    setPickerYear(historySelectedDate.getFullYear());
-                    setIsDatePickerOpen(true);
-                  }}
-                  className="text-[13pt] font-semibold text-[#1A1A1A] hover:bg-zinc-50 px-3 py-1 rounded-lg transition-all active:scale-95 flex items-center gap-2 group tracking-tighter"
-                >
-                  {historyViewMode === 'day' ? (
-                    historySelectedDate.toLocaleDateString('ko-KR', { year: 'numeric', month: 'long', day: 'numeric' })
-                  ) : historyViewMode === 'week' ? (
-                    (() => {
-                      const day = historySelectedDate.getDay();
-                      const diffToMonday = day === 0 ? 6 : day - 1;
-                      const mon = new Date(historySelectedDate);
-                      mon.setDate(historySelectedDate.getDate() - diffToMonday);
-                      const sun = new Date(mon);
-                      sun.setDate(mon.getDate() + 6);
-                      return `${mon.getMonth()+1}.${mon.getDate()} - ${sun.getMonth()+1}.${sun.getDate()}`;
-                    })()
-                  ) : (
-                    historySelectedDate.toLocaleDateString('ko-KR', { year: 'numeric', month: 'long' })
-                  )}
-                  <svg className="w-3 h-3 opacity-20 group-hover:opacity-100 transition-opacity" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" /></svg>
-                </button>
-                <button 
-                  onClick={() => {
-                    const d = new Date(historySelectedDate);
-                    if (historyViewMode === 'day') d.setDate(d.getDate() + 1);
-                    else if (historyViewMode === 'week') d.setDate(d.getDate() + 7);
-                    else d.setMonth(d.getMonth() + 1);
-                    setHistorySelectedDate(d);
-                  }} 
-                  className="p-2 hover:bg-zinc-50 rounded-full transition-colors text-zinc-300 hover:text-[#1A1A1A]"
-                >
-                  <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1} d="M9 5l7 7-7 7" /></svg>
-                </button>
+            <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-6">
+              <div className="space-y-1">
+                <h3 className="text-[13pt] tracking-widest text-[#1A1A1A] uppercase font-semibold">활동 히스토리</h3>
+                <h4 className="text-[13pt] font-light tracking-tight text-[#1A1A1A]">
+                  {historySelectedDate.getFullYear()}년 {historySelectedDate.getMonth() + 1}월
+                </h4>
               </div>
 
-              {historyViewMode === 'month' && (
-                <div className="grid grid-cols-7 gap-1 text-center mb-4">
-                  {['일', '월', '화', '수', '목', '금', '토'].map(day => (
-                    <span key={day} className="text-[11pt] font-semibold text-[#888888] tracking-tighter">{day}</span>
-                  ))}
+              <div className="flex bg-zinc-50 p-1 rounded-lg w-full sm:w-auto">
+                {(['day', 'week', 'month'] as const).map((mode) => (
+                  <button
+                    key={mode}
+                    onClick={() => setHistoryViewMode(mode)}
+                    className={`flex-1 sm:px-4 py-1.5 text-[11pt] font-semibold uppercase tracking-widest transition-all rounded-md ${historyViewMode === mode ? 'bg-white text-[#1A1A1A] shadow-sm' : 'text-[#888888] hover:text-[#1A1A1A]'
+                      }`}
+                  >
+                    {mode === 'day' ? '일' : mode === 'week' ? '주' : '월'}
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-12">
+              {/* Calendar View */}
+              <div className="bg-white border border-zinc-900 rounded-3xl p-6 shadow-2xl shadow-zinc-100/50">
+                <div className="flex items-center justify-between mb-6">
+                  <button
+                    onClick={() => {
+                      const d = new Date(historySelectedDate);
+                      if (historyViewMode === 'day') d.setDate(d.getDate() - 1);
+                      else if (historyViewMode === 'week') d.setDate(d.getDate() - 7);
+                      else d.setMonth(d.getMonth() - 1);
+                      setHistorySelectedDate(d);
+                    }}
+                    className="p-2 hover:bg-zinc-50 rounded-full transition-colors text-zinc-300 hover:text-[#1A1A1A]"
+                  >
+                    <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1} d="M15 19l-7-7 7-7" /></svg>
+                  </button>
+                  <button
+                    onClick={() => {
+                      setPickerYear(historySelectedDate.getFullYear());
+                      setIsDatePickerOpen(true);
+                    }}
+                    className="text-[13pt] font-semibold text-[#1A1A1A] hover:bg-zinc-50 px-3 py-1 rounded-lg transition-all active:scale-95 flex items-center gap-2 group tracking-tighter"
+                  >
+                    {historyViewMode === 'day' ? (
+                      historySelectedDate.toLocaleDateString('ko-KR', { year: 'numeric', month: 'long', day: 'numeric' })
+                    ) : historyViewMode === 'week' ? (
+                      (() => {
+                        const day = historySelectedDate.getDay();
+                        const diffToMonday = day === 0 ? 6 : day - 1;
+                        const mon = new Date(historySelectedDate);
+                        mon.setDate(historySelectedDate.getDate() - diffToMonday);
+                        const sun = new Date(mon);
+                        sun.setDate(mon.getDate() + 6);
+                        return `${mon.getMonth() + 1}.${mon.getDate()} - ${sun.getMonth() + 1}.${sun.getDate()}`;
+                      })()
+                    ) : (
+                      historySelectedDate.toLocaleDateString('ko-KR', { year: 'numeric', month: 'long' })
+                    )}
+                    <svg className="w-3 h-3 opacity-20 group-hover:opacity-100 transition-opacity" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" /></svg>
+                  </button>
+                  <button
+                    onClick={() => {
+                      const d = new Date(historySelectedDate);
+                      if (historyViewMode === 'day') d.setDate(d.getDate() + 1);
+                      else if (historyViewMode === 'week') d.setDate(d.getDate() + 7);
+                      else d.setMonth(d.getMonth() + 1);
+                      setHistorySelectedDate(d);
+                    }}
+                    className="p-2 hover:bg-zinc-50 rounded-full transition-colors text-zinc-300 hover:text-[#1A1A1A]"
+                  >
+                    <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1} d="M9 5l7 7-7 7" /></svg>
+                  </button>
                 </div>
-              )}
 
-              <div className="grid grid-cols-7 gap-1">
-                {(() => {
-                  const d = historySelectedDate;
-                  
-                  if (historyViewMode === 'day') {
-                    return (
-                      <div className="col-span-7 py-2 flex flex-col items-center justify-center space-y-2 animate-in fade-in slide-in-from-bottom-2 duration-400">
-                        <div className="w-12 h-12 bg-[#1A1A1A] text-white rounded-xl flex items-center justify-center shadow-lg shadow-zinc-100">
-                          <span className="text-[13pt] font-semibold tracking-tighter leading-none">{d.getDate()}</span>
+                {historyViewMode === 'month' && (
+                  <div className="grid grid-cols-7 gap-1 text-center mb-4">
+                    {['일', '월', '화', '수', '목', '금', '토'].map(day => (
+                      <span key={day} className="text-[11pt] font-semibold text-[#888888] tracking-tighter">{day}</span>
+                    ))}
+                  </div>
+                )}
+
+                <div className="grid grid-cols-7 gap-1">
+                  {(() => {
+                    const d = historySelectedDate;
+
+                    if (historyViewMode === 'day') {
+                      return (
+                        <div className="col-span-7 py-2 flex flex-col items-center justify-center space-y-2 animate-in fade-in slide-in-from-bottom-2 duration-400">
+                          <div className="w-12 h-12 bg-[#1A1A1A] text-white rounded-xl flex items-center justify-center shadow-lg shadow-zinc-100">
+                            <span className="text-[13pt] font-semibold tracking-tighter leading-none">{d.getDate()}</span>
+                          </div>
+                          <span className="text-[10pt] font-semibold text-[#888888]">
+                            {d.toLocaleDateString('ko-KR', { weekday: 'short' })}
+                          </span>
                         </div>
-                        <span className="text-[10pt] font-semibold text-[#888888]">
-                          {d.toLocaleDateString('ko-KR', { weekday: 'short' })}
-                        </span>
-                      </div>
-                    );
-                  }
+                      );
+                    }
 
-                  if (historyViewMode === 'week') {
-                    const startOfWeek = new Date(d);
-                    const day = d.getDay();
-                    const diffToMonday = day === 0 ? 6 : day - 1;
-                    startOfWeek.setDate(d.getDate() - diffToMonday); 
-                    startOfWeek.setHours(0, 0, 0, 0);
-                    const weekDays = [];
-                    for (let i = 0; i < 7; i++) {
-                      const day = new Date(startOfWeek);
-                      day.setDate(startOfWeek.getDate() + i);
-                      const isSelected = d.toDateString() === day.toDateString();
-                      const isToday = new Date().toDateString() === day.toDateString();
-                      const dateStr = `${day.getFullYear()}-${String(day.getMonth() + 1).padStart(2, '0')}-${String(day.getDate()).padStart(2, '0')}`;
+                    if (historyViewMode === 'week') {
+                      const startOfWeek = new Date(d);
+                      const day = d.getDay();
+                      const diffToMonday = day === 0 ? 6 : day - 1;
+                      startOfWeek.setDate(d.getDate() - diffToMonday);
+                      startOfWeek.setHours(0, 0, 0, 0);
+                      const weekDays = [];
+                      for (let i = 0; i < 7; i++) {
+                        const day = new Date(startOfWeek);
+                        day.setDate(startOfWeek.getDate() + i);
+                        const isSelected = d.toDateString() === day.toDateString();
+                        const isToday = new Date().toDateString() === day.toDateString();
+                        const dateStr = `${day.getFullYear()}-${String(day.getMonth() + 1).padStart(2, '0')}-${String(day.getDate()).padStart(2, '0')}`;
+                        const hasActivity = activities.some(a => a.timestamp.startsWith(dateStr) && (!selectedPetId || a.pet_id === selectedPetId));
+
+                        weekDays.push(
+                          <button
+                            key={i}
+                            onClick={() => setHistorySelectedDate(day)}
+                            className={`aspect-square flex flex-col items-center justify-center rounded-xl transition-all relative group ${isSelected ? 'bg-[#1A1A1A] text-white shadow-xl scale-105 z-10' : 'hover:bg-zinc-50'
+                              }`}
+                          >
+                            <span className="text-[13pt] font-mono text-zinc-300 mb-1">{['월', '화', '수', '목', '금', '토', '일'][i]}</span>
+                            <span className={`text-[13pt] font-mono ${isSelected ? 'font-semibold' : 'text-[#1A1A1A]'} ${isToday && !isSelected ? 'text-red-500 font-semibold underline' : ''}`}>{day.getDate()}</span>
+                            {hasActivity && !isSelected && (
+                              <div className="w-1 h-1 rounded-full bg-black mt-1 opacity-20 group-hover:opacity-100 transition-opacity" />
+                            )}
+                          </button>
+                        );
+                      }
+                      return <div className="col-span-7 grid grid-cols-7 gap-1 animate-in slide-in-from-left-2 duration-300">{weekDays}</div>;
+                    }
+
+                    const firstDay = new Date(d.getFullYear(), d.getMonth(), 1).getDay();
+                    const daysInMonth = new Date(d.getFullYear(), d.getMonth() + 1, 0).getDate();
+
+                    const days = [];
+                    for (let i = 0; i < firstDay; i++) days.push(<div key={`empty-${i}`} />);
+                    for (let dNum = 1; dNum <= daysInMonth; dNum++) {
+                      const currentLoopDay = new Date(d.getFullYear(), d.getMonth(), dNum);
+                      const dateStr = `${currentLoopDay.getFullYear()}-${String(currentLoopDay.getMonth() + 1).padStart(2, '0')}-${String(currentLoopDay.getDate()).padStart(2, '0')}`;
                       const hasActivity = activities.some(a => a.timestamp.startsWith(dateStr) && (!selectedPetId || a.pet_id === selectedPetId));
+                      const isSelected = historySelectedDate.getDate() === dNum && historySelectedDate.getMonth() === d.getMonth();
+                      const isToday = new Date().toDateString() === currentLoopDay.toDateString();
 
-                      weekDays.push(
+                      days.push(
                         <button
-                          key={i}
-                          onClick={() => setHistorySelectedDate(day)}
-                          className={`aspect-square flex flex-col items-center justify-center rounded-xl transition-all relative group ${
-                            isSelected ? 'bg-[#1A1A1A] text-white shadow-xl scale-105 z-10' : 'hover:bg-zinc-50'
-                          }`}
+                          key={dNum}
+                          onClick={() => setHistorySelectedDate(new Date(d.getFullYear(), d.getMonth(), dNum))}
+                          className={`aspect-square flex flex-col items-center justify-center rounded-xl transition-all relative group animate-in fade-in duration-300 ${isSelected ? 'bg-[#1A1A1A] text-white shadow-xl scale-105 z-10' : 'hover:bg-zinc-50'
+                            }`}
                         >
-                          <span className="text-[13pt] font-mono text-zinc-300 mb-1">{['월','화','수','목','금','토','일'][i]}</span>
-                          <span className={`text-[13pt] font-mono ${isSelected ? 'font-semibold' : 'text-[#1A1A1A]'} ${isToday && !isSelected ? 'text-red-500 font-semibold underline' : ''}`}>{day.getDate()}</span>
+                          <span className={`text-[13pt] font-mono ${isSelected ? 'font-semibold' : 'text-[#1A1A1A]'} ${isToday && !isSelected ? 'text-red-500 font-semibold underline' : ''}`}>{dNum}</span>
                           {hasActivity && !isSelected && (
                             <div className="w-1 h-1 rounded-full bg-black mt-1 opacity-20 group-hover:opacity-100 transition-opacity" />
                           )}
                         </button>
                       );
                     }
-                    return <div className="col-span-7 grid grid-cols-7 gap-1 animate-in slide-in-from-left-2 duration-300">{weekDays}</div>;
-                  }
+                    return days;
+                  })()}
+                </div>
+              </div>
 
-                  const firstDay = new Date(d.getFullYear(), d.getMonth(), 1).getDay();
-                  const daysInMonth = new Date(d.getFullYear(), d.getMonth() + 1, 0).getDate();
-                  
-                  const days = [];
-                  for (let i = 0; i < firstDay; i++) days.push(<div key={`empty-${i}`} />);
-                  for (let dNum = 1; dNum <= daysInMonth; dNum++) {
-                    const currentLoopDay = new Date(d.getFullYear(), d.getMonth(), dNum);
-                    const dateStr = `${currentLoopDay.getFullYear()}-${String(currentLoopDay.getMonth() + 1).padStart(2, '0')}-${String(currentLoopDay.getDate()).padStart(2, '0')}`;
-                    const hasActivity = activities.some(a => a.timestamp.startsWith(dateStr) && (!selectedPetId || a.pet_id === selectedPetId));
-                    const isSelected = historySelectedDate.getDate() === dNum && historySelectedDate.getMonth() === d.getMonth();
-                    const isToday = new Date().toDateString() === currentLoopDay.toDateString();
-                    
-                    days.push(
-                      <button
-                        key={dNum}
-                        onClick={() => setHistorySelectedDate(new Date(d.getFullYear(), d.getMonth(), dNum))}
-                        className={`aspect-square flex flex-col items-center justify-center rounded-xl transition-all relative group animate-in fade-in duration-300 ${
-                          isSelected ? 'bg-[#1A1A1A] text-white shadow-xl scale-105 z-10' : 'hover:bg-zinc-50'
-                        }`}
-                      >
-                        <span className={`text-[13pt] font-mono ${isSelected ? 'font-semibold' : 'text-[#1A1A1A]'} ${isToday && !isSelected ? 'text-red-500 font-semibold underline' : ''}`}>{dNum}</span>
-                        {hasActivity && !isSelected && (
-                          <div className="w-1 h-1 rounded-full bg-black mt-1 opacity-20 group-hover:opacity-100 transition-opacity" />
+              {/* History Details View */}
+              <div className="space-y-8">
+                <div className="flex items-center justify-between border-b border-zinc-50 pb-4">
+                  <h5 className="text-[11px] font-semibold text-[#1A1A1A] uppercase tracking-widest">
+                    {historyViewMode === 'day' ? '일간 기록' : historyViewMode === 'week' ? '주간 기록' : '월간 기록'}
+                  </h5>
+                  <span className="text-[10px] text-[#888888] font-mono">
+                    {historyViewMode === 'day' ? (
+                      historySelectedDate.toLocaleDateString('ko-KR', { month: 'long', day: 'numeric', weekday: 'short' })
+                    ) : historyViewMode === 'week' ? (
+                      '최근 7일'
+                    ) : (
+                      `${historySelectedDate.getMonth() + 1}월 전체`
+                    )}
+                  </span>
+                </div>
+
+                <div className="space-y-6 max-h-[400px] overflow-y-auto pr-4 custom-scrollbar">
+                  {Object.keys(groupedActivities).length > 0 ? (
+                    Object.entries(groupedActivities).map(([date, items]) => (
+                      <div key={date} className="space-y-4">
+                        {(historyViewMode === 'week' || historyViewMode === 'month') && (
+                          <div className="flex items-center gap-2 py-2 sticky top-0 bg-white z-10">
+                            <span className="text-[13pt] font-semibold text-[#1A1A1A] bg-zinc-50 px-2 py-0.5 rounded tracking-tighter">
+                              {new Date(date).toLocaleDateString('ko-KR', { month: 'short', day: 'numeric', weekday: 'short' })}
+                            </span>
+                            <div className="h-[1px] flex-1 bg-zinc-50" />
+                          </div>
                         )}
-                      </button>
-                    );
-                  }
-                  return days;
-                })()}
-              </div>
-            </div>
-
-            {/* History Details View */}
-            <div className="space-y-8">
-              <div className="flex items-center justify-between border-b border-zinc-50 pb-4">
-                <h5 className="text-[11px] font-semibold text-[#1A1A1A] uppercase tracking-widest">
-                  {historyViewMode === 'day' ? '일간 기록' : historyViewMode === 'week' ? '주간 기록' : '월간 기록'}
-                </h5>
-                <span className="text-[10px] text-[#888888] font-mono">
-                  {historyViewMode === 'day' ? (
-                    historySelectedDate.toLocaleDateString('ko-KR', { month: 'long', day: 'numeric', weekday: 'short' })
-                  ) : historyViewMode === 'week' ? (
-                    '최근 7일'
-                  ) : (
-                    `${historySelectedDate.getMonth() + 1}월 전체`
-                  )}
-                </span>
-              </div>
-
-              <div className="space-y-6 max-h-[400px] overflow-y-auto pr-4 custom-scrollbar">
-                {Object.keys(groupedActivities).length > 0 ? (
-                  Object.entries(groupedActivities).map(([date, items]) => (
-                    <div key={date} className="space-y-4">
-                      {(historyViewMode === 'week' || historyViewMode === 'month') && (
-                        <div className="flex items-center gap-2 py-2 sticky top-0 bg-white z-10">
-                          <span className="text-[13pt] font-semibold text-[#1A1A1A] bg-zinc-50 px-2 py-0.5 rounded tracking-tighter">
-                            {new Date(date).toLocaleDateString('ko-KR', { month: 'short', day: 'numeric', weekday: 'short' })}
-                          </span>
-                          <div className="h-[1px] flex-1 bg-zinc-50" />
-                        </div>
-                      )}
-                      <div className="space-y-4">
-                        {items.map((activity) => (
-                          <div key={activity.id} className="flex gap-4 items-start group border-b border-zinc-50 pb-4 last:border-0 last:pb-0">
-                            <div className="w-11 h-11 rounded-xl bg-zinc-50 border border-zinc-100 flex items-center justify-center shrink-0 shadow-sm shadow-zinc-100/50">
-                              <span className="text-[16pt] filter grayscale group-hover:grayscale-0 transition-all">
-                                {activity.type === '밥 먹이기' ? '🥣' : 
-                                 activity.type === '산책하기' ? '🦮' : 
-                                 activity.type === '약 먹이기' ? '💊' : 
-                                 activity.type === '놀아주기' ? '🧶' : '📝'}
-                              </span>
-                            </div>
-                            <div className="space-y-1 flex-1">
+                        <div className="space-y-4">
+                          {items.map((activity) => (
+                            <div key={activity.id} className="flex gap-4 items-start group border-b border-zinc-50 pb-4 last:border-0 last:pb-0">
+                              <div className="w-11 h-11 rounded-xl bg-zinc-50 border border-zinc-100 flex items-center justify-center shrink-0 shadow-sm shadow-zinc-100/50">
+                                <span className="text-[16pt] filter grayscale group-hover:grayscale-0 transition-all">
+                                  {activity.type === '밥 먹이기' ? '🥣' :
+                                    activity.type === '산책하기' ? '🦮' :
+                                      activity.type === '약 먹이기' ? '💊' :
+                                        activity.type === '놀아주기' ? '🧶' : '📝'}
+                                </span>
+                              </div>
+                              <div className="space-y-1 flex-1">
                                 <div className="flex justify-between items-start">
                                   <p className="text-[13pt] font-semibold text-[#1A1A1A]">{activity.type}</p>
                                   {activity.user_id === profile?.id && (
-                                    <button onClick={() => setEditingActivity(activity)} className="text-[10pt] text-[#888888] hover:text-[#1A1A1A] transition-colors opacity-0 group-hover:opacity-100">수정</button>
+                                    <div className="flex gap-4 opacity-0 group-hover:opacity-100 transition-opacity">
+                                      <button onClick={() => setEditingActivity(activity)} className="text-[10pt] text-[#888888] hover:text-[#1A1A1A] transition-colors">수정</button>
+                                      <button onClick={() => handleDeleteActivity(activity.id)} className="text-[10pt] text-zinc-200 hover:text-red-400">삭제</button>
+                                    </div>
                                   )}
                                 </div>
-                              <p className="text-[11pt] text-[#888888] leading-relaxed line-clamp-2 font-light">{activity.details}</p>
-                              <div className="flex items-center gap-2 pt-1">
-                                <span className="text-[10pt] text-[#888888] uppercase tracking-widest">
-                                {new Date(activity.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', hour12: false })}
-                                </span>
-                                <span className="text-[10pt] font-semibold px-1.5 py-0.5 bg-zinc-50 rounded text-[#888888]">{(activity as any).profiles?.nickname}</span>
+                                <p className="text-[11pt] text-[#888888] leading-relaxed line-clamp-2 font-light">{activity.details}</p>
+                                <div className="flex items-center gap-2 pt-1">
+                                  <span className="text-[10pt] text-[#888888] uppercase tracking-widest">
+                                    {new Date(activity.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', hour12: false })}
+                                  </span>
+                                  <span className="text-[10pt] font-semibold px-1.5 py-0.5 bg-zinc-50 rounded text-[#888888]">{(activity as any).profiles?.nickname}</span>
+                                </div>
                               </div>
                             </div>
-                          </div>
-                        ))}
+                          ))}
+                        </div>
                       </div>
+                    ))
+                  ) : (
+                    <div className="py-20 text-center space-y-4">
+                      <div className="text-3xl opacity-10">🗓️</div>
+                      <p className="text-[10px] text-zinc-300 uppercase tracking-[0.2em] italic font-light">해당 기간의 기록이 없습니다.</p>
                     </div>
-                  ))
-                ) : (
-                  <div className="py-20 text-center space-y-4">
-                    <div className="text-3xl opacity-10">🗓️</div>
-                    <p className="text-[10px] text-zinc-300 uppercase tracking-[0.2em] italic font-light">해당 기간의 기록이 없습니다.</p>
-                  </div>
-                )}
+                  )}
+                </div>
               </div>
             </div>
-          </div>
-        </section>
+          </section>
         )}
 
         <footer className="pt-20 border-t border-zinc-100 pb-10">
@@ -2176,7 +2188,7 @@ export default function DashboardPage() {
 
         {isDatePickerOpen && (
           <div className="fixed inset-0 bg-black/40 backdrop-blur-sm z-[60] flex items-center justify-center p-6 animate-in fade-in duration-300">
-            <motion.div 
+            <motion.div
               initial={{ opacity: 0, scale: 0.9, y: 20 }}
               animate={{ opacity: 1, scale: 1, y: 0 }}
               className="bg-white w-full max-w-[360px] rounded-[32px] p-8 shadow-2xl relative overflow-hidden"
@@ -2202,14 +2214,14 @@ export default function DashboardPage() {
                     <span className="text-xl font-semibold tracking-tighter">{pickerYear}년 {pickerMonth}월</span>
                   )}
                 </div>
-                <button 
+                <button
                   onClick={() => {
                     setIsDatePickerOpen(false);
                     setPickerStep('month');
-                  }} 
+                  }}
                   className="text-zinc-300 hover:text-black p-2"
                 >
-                  <svg className="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M18 6L6 18M6 6l12 12"/></svg>
+                  <svg className="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M18 6L6 18M6 6l12 12" /></svg>
                 </button>
               </div>
 
@@ -2230,11 +2242,10 @@ export default function DashboardPage() {
                             setPickerStep('day');
                           }
                         }}
-                        className={`py-3 rounded-2xl text-[13pt] font-mono transition-all ${
-                          isCurrent 
-                            ? 'bg-black text-white shadow-lg' 
+                        className={`py-3 rounded-2xl text-[13pt] font-mono transition-all ${isCurrent
+                            ? 'bg-black text-white shadow-lg'
                             : 'bg-zinc-50 text-[#888888] hover:bg-zinc-100 hover:text-black'
-                        }`}
+                          }`}
                       >
                         {month}월
                       </button>
@@ -2244,26 +2255,26 @@ export default function DashboardPage() {
               ) : (
                 <div className="space-y-6">
                   <div className="grid grid-cols-7 gap-1">
-                    {['일','월','화','수','목','금','토'].map(d => (
+                    {['일', '월', '화', '수', '목', '금', '토'].map(d => (
                       <span key={d} className="text-[10px] text-zinc-300 text-center font-bold py-2">{d}</span>
                     ))}
                     {(() => {
                       const daysInMonth = new Date(pickerYear, pickerMonth, 0).getDate();
                       const firstDay = new Date(pickerYear, pickerMonth - 1, 1).getDay();
                       const days = [];
-                      
+
                       // Empty slots
                       for (let i = 0; i < firstDay; i++) {
                         days.push(<div key={`empty-${i}`} />);
                       }
-                      
+
                       // Actual days
                       for (let d = 1; d <= daysInMonth; d++) {
                         const dateObj = new Date(pickerYear, pickerMonth - 1, d);
-                        const isSelected = historySelectedDate.getFullYear() === pickerYear && 
-                                         historySelectedDate.getMonth() + 1 === pickerMonth && 
-                                         historySelectedDate.getDate() === d;
-                        
+                        const isSelected = historySelectedDate.getFullYear() === pickerYear &&
+                          historySelectedDate.getMonth() + 1 === pickerMonth &&
+                          historySelectedDate.getDate() === d;
+
                         // Week highlighting logic
                         let isWeekSelected = false;
                         if (historyViewMode === 'week') {
@@ -2282,13 +2293,12 @@ export default function DashboardPage() {
                               setIsDatePickerOpen(false);
                               setPickerStep('month');
                             }}
-                            className={`aspect-square rounded-xl flex items-center justify-center text-[11pt] font-mono transition-all relative ${
-                              isSelected 
-                                ? 'bg-black text-white z-10' 
-                                : isWeekSelected 
-                                  ? 'bg-zinc-100 text-black' 
+                            className={`aspect-square rounded-xl flex items-center justify-center text-[11pt] font-mono transition-all relative ${isSelected
+                                ? 'bg-black text-white z-10'
+                                : isWeekSelected
+                                  ? 'bg-zinc-100 text-black'
                                   : 'hover:bg-zinc-50 text-[#1A1A1A]'
-                            }`}
+                              }`}
                           >
                             {d}
                           </button>
@@ -2301,7 +2311,7 @@ export default function DashboardPage() {
               )}
 
               <div className="mt-8 pt-6 border-t border-zinc-50 flex justify-center">
-                <button 
+                <button
                   onClick={() => {
                     const now = new Date();
                     setHistorySelectedDate(now);
@@ -2320,7 +2330,7 @@ export default function DashboardPage() {
         {recordingType && (
           <div className="fixed inset-0 bg-black/40 backdrop-blur-sm z-50 flex items-center justify-center p-6 animate-in fade-in duration-300">
             <div className="bg-white w-full max-w-[450px] rounded-[32px] p-8 space-y-10 shadow-2xl animate-in zoom-in-95 duration-500">
-              <div className="flex justify-between items-center"><span className="text-[10px] tracking-widest text-[#888888] uppercase font-mono">{recordingType} — {recordStep} / {recordingType === '밥 먹이기' ? 2 : (recordingType === '산책하기' || recordingType === '사냥놀이하기' ? 3 : 2)}</span><button onClick={() => setRecordingType(null)} className="text-zinc-300 hover:text-black"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M18 6L6 18M6 6l12 12"/></svg></button></div>
+              <div className="flex justify-between items-center"><span className="text-[10px] tracking-widest text-[#888888] uppercase font-mono">{recordingType} — {recordStep} / {recordingType === '밥 먹이기' ? 2 : (recordingType === '산책하기' || recordingType === '사냥놀이하기' ? 3 : 2)}</span><button onClick={() => setRecordingType(null)} className="text-zinc-300 hover:text-black"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M18 6L6 18M6 6l12 12" /></svg></button></div>
               {renderRecordFlow()}
             </div>
           </div>
@@ -2335,8 +2345,8 @@ export default function DashboardPage() {
               </div>
               {editingActivity.type === '밥 먹이기' ? (
                 <div className="space-y-10">
-                  <div className="space-y-4"><label className="text-[10px] text-[#888888] uppercase tracking-widest">분류</label><div className="grid grid-cols-2 gap-2">{['건식 사료', '습식 사료', '자연식', '기타'].map((t) => ( <button key={t} onClick={() => setEditMealData({ ...editMealData, type: t })} className={`py-3 px-4 text-xs rounded-xl border transition-all ${editMealData.type === t ? 'border-black bg-black text-white' : 'border-zinc-100 text-zinc-500'}`}>{t}</button> ))}</div></div>
-                  <div className="space-y-4"><label className="text-[10px] text-[#888888] uppercase tracking-widest">양 및 단위</label><div className="flex items-end gap-2 border-b border-zinc-100 pb-2"><input type="number" className="w-full text-3xl font-light border-none focus:ring-0 p-0" value={editMealData.amountValue} onChange={(e) => setEditMealData({ ...editMealData, amountValue: e.target.value })} /><span className="text-xl font-light text-zinc-300 pb-0.5">{editMealData.amountUnit}</span></div><div className="flex gap-2">{['g', 'kg', '컵'].map((unit) => ( <button key={unit} onClick={() => setEditMealData({ ...editMealData, amountUnit: unit })} className={`px-3 py-1.5 text-[9px] uppercase tracking-widest border transition-all ${editMealData.amountUnit === unit ? 'border-black bg-black text-white' : 'border-zinc-100 text-[#888888]'}`}>{unit}</button> ))}</div></div>
+                  <div className="space-y-4"><label className="text-[10px] text-[#888888] uppercase tracking-widest">분류</label><div className="grid grid-cols-2 gap-2">{['건식 사료', '습식 사료', '자연식', '기타'].map((t) => (<button key={t} onClick={() => setEditMealData({ ...editMealData, type: t })} className={`py-3 px-4 text-xs rounded-xl border transition-all ${editMealData.type === t ? 'border-black bg-black text-white' : 'border-zinc-100 text-zinc-500'}`}>{t}</button>))}</div></div>
+                  <div className="space-y-4"><label className="text-[10px] text-[#888888] uppercase tracking-widest">양 및 단위</label><div className="flex items-end gap-2 border-b border-zinc-100 pb-2"><input type="number" className="w-full text-3xl font-light border-none focus:ring-0 p-0" value={editMealData.amountValue} onChange={(e) => setEditMealData({ ...editMealData, amountValue: e.target.value })} /><span className="text-xl font-light text-zinc-300 pb-0.5">{editMealData.amountUnit}</span></div><div className="flex gap-2">{['g', 'kg', '컵'].map((unit) => (<button key={unit} onClick={() => setEditMealData({ ...editMealData, amountUnit: unit })} className={`px-3 py-1.5 text-[9px] uppercase tracking-widest border transition-all ${editMealData.amountUnit === unit ? 'border-black bg-black text-white' : 'border-zinc-100 text-[#888888]'}`}>{unit}</button>))}</div></div>
                 </div>
               ) : (
                 <div className="space-y-4"><label className="text-[10px] text-[#888888] uppercase tracking-widest">상세 내용</label><input autoFocus type="text" className="w-full text-lg border-b border-zinc-100 focus:border-black focus:ring-0 py-4" value={editDetails} onChange={(e) => setEditDetails(e.target.value)} /></div>
@@ -2352,17 +2362,17 @@ export default function DashboardPage() {
       <div className="fixed bottom-0 left-0 right-0 bg-white border-t border-zinc-100 z-[100] pb-safe shadow-[0_-5px_20px_rgba(0,0,0,0.03)]">
         <nav className="max-w-[800px] mx-auto px-6 py-2 flex justify-between items-center">
           <button onClick={() => setActiveBottomTab('home')} className={`flex flex-col items-center gap-1.5 transition-colors flex-1 py-1 sm:py-2 ${activeBottomTab === 'home' ? 'text-black' : 'text-[#888888] hover:text-zinc-600'}`}>
-          <svg width="24" height="24" viewBox="0 0 24 24" fill={activeBottomTab === 'home' ? "currentColor" : "none"} stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"></path><polyline points="9 22 9 12 15 12 15 22"></polyline></svg>
-          <span className="text-[10px] font-semibold tracking-widest uppercase">홈</span>
-        </button>
-        <button onClick={() => setActiveBottomTab('pocket')} className={`flex flex-col items-center gap-1.5 transition-colors flex-1 py-1 sm:py-2 ${activeBottomTab === 'pocket' ? 'text-black' : 'text-[#888888] hover:text-zinc-600'}`}>
-          <svg width="24" height="24" viewBox="0 0 24 24" fill={activeBottomTab === 'pocket' ? "currentColor" : "none"} stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"></circle><path d="M8 14s1.5 2 4 2 4-2 4-2"></path><line x1="9" y1="9" x2="9.01" y2="9"></line><line x1="15" y1="9" x2="15.01" y2="9"></line></svg>
-          <span className="text-[10px] font-semibold tracking-widest uppercase">포켓룸</span>
-        </button>
-        <button onClick={() => setActiveBottomTab('calendar')} className={`flex flex-col items-center gap-1.5 transition-colors flex-1 py-1 sm:py-2 ${activeBottomTab === 'calendar' ? 'text-black' : 'text-[#888888] hover:text-zinc-600'}`}>
-          <svg width="24" height="24" viewBox="0 0 24 24" fill={activeBottomTab === 'calendar' ? "currentColor" : "none"} stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect><line x1="16" y1="2" x2="16" y2="6"></line><line x1="8" y1="2" x2="8" y2="6"></line><line x1="3" y1="10" x2="21" y2="10"></line></svg>
-          <span className="text-[10px] font-semibold tracking-widest uppercase">일정</span>
-        </button>
+            <svg width="24" height="24" viewBox="0 0 24 24" fill={activeBottomTab === 'home' ? "currentColor" : "none"} stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"></path><polyline points="9 22 9 12 15 12 15 22"></polyline></svg>
+            <span className="text-[10px] font-semibold tracking-widest uppercase">홈</span>
+          </button>
+          <button onClick={() => setActiveBottomTab('pocket')} className={`flex flex-col items-center gap-1.5 transition-colors flex-1 py-1 sm:py-2 ${activeBottomTab === 'pocket' ? 'text-black' : 'text-[#888888] hover:text-zinc-600'}`}>
+            <svg width="24" height="24" viewBox="0 0 24 24" fill={activeBottomTab === 'pocket' ? "currentColor" : "none"} stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"></circle><path d="M8 14s1.5 2 4 2 4-2 4-2"></path><line x1="9" y1="9" x2="9.01" y2="9"></line><line x1="15" y1="9" x2="15.01" y2="9"></line></svg>
+            <span className="text-[10px] font-semibold tracking-widest uppercase">포켓룸</span>
+          </button>
+          <button onClick={() => setActiveBottomTab('calendar')} className={`flex flex-col items-center gap-1.5 transition-colors flex-1 py-1 sm:py-2 ${activeBottomTab === 'calendar' ? 'text-black' : 'text-[#888888] hover:text-zinc-600'}`}>
+            <svg width="24" height="24" viewBox="0 0 24 24" fill={activeBottomTab === 'calendar' ? "currentColor" : "none"} stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect><line x1="16" y1="2" x2="16" y2="6"></line><line x1="8" y1="2" x2="8" y2="6"></line><line x1="3" y1="10" x2="21" y2="10"></line></svg>
+            <span className="text-[10px] font-semibold tracking-widest uppercase">일정</span>
+          </button>
         </nav>
       </div>
     </main>
