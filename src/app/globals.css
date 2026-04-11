@@ -8,18 +8,16 @@
     font-style: normal;
 }
 
-@theme {
-  --color-brand-black: #1A1A1A;
-  --color-brand-white: #ffffff;
-  --color-brand-gray: #f9f9f9;
-  --color-brand-border: #f1f1f1;
-  --color-brand-secondary: #888888;
-}
-
 :root {
   --background: #ffffff;
   --foreground: #1A1A1A;
   --text-secondary: #888888;
+  /* Brand Tokens */
+  --brand-black: #1A1A1A;
+  --brand-white: #ffffff;
+  --brand-gray: #f9f9f9;
+  --brand-border: #f1f1f1;
+  --brand-secondary: #888888;
 }
 
 html,
@@ -52,17 +50,59 @@ input {
   outline: none;
 }
 
-/* 29CM Style minimalism */
+/* 29CM Style minimalism - Converted from @apply to standard CSS to resolve IDE warnings */
 .btn-black {
-  @apply bg-[#1A1A1A] text-white px-8 py-4 text-base font-semibold tracking-widest uppercase transition-all hover:bg-black active:scale-[0.98] rounded-none;
+  background-color: #1A1A1A;
+  color: #ffffff;
+  padding: 1rem 2rem;
+  font-size: 1rem;
+  font-weight: 600;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  transition: all 0.2s ease;
+  border-radius: 0;
+  border: none;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.btn-black:hover {
+  background-color: #000000;
+}
+
+.btn-black:active {
+  transform: scale(0.98);
 }
 
 .input-minimal {
-  @apply w-full border-b border-zinc-100 py-4 text-base font-light focus:border-black transition-colors bg-transparent placeholder:text-zinc-200;
+  width: 100%;
+  border: none;
+  border-bottom: 1px solid #f1f1f1;
+  padding: 1rem 0;
+  font-size: 1rem;
+  font-weight: 300;
+  background-color: transparent;
+  transition: border-color 0.2s ease;
+}
+
+.input-minimal:focus {
+  border-bottom-color: #1A1A1A;
+}
+
+.input-minimal::placeholder {
+  color: #e4e4e7;
 }
 
 .label-minimal {
-  @apply text-base uppercase tracking-widest text-[#888888] mb-2 block font-medium;
+  font-size: 1rem;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  color: #888888;
+  margin-bottom: 0.5rem;
+  display: block;
+  font-weight: 500;
 }
 
 .text-secondary {

@@ -386,7 +386,7 @@ export default function DashboardPage() {
       }
 
       if (profileData) {
-        setProfile(prev => {
+        setProfile((prev: any) => {
           if (JSON.stringify(prev) === JSON.stringify(profileData)) return prev;
           return profileData;
         });
