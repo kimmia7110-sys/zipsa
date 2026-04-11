@@ -104,6 +104,7 @@ export default function DashboardPage() {
   // Navigation State
   const [activeBottomTab, setActiveBottomTab] = useState<'home' | 'pocket' | 'calendar'>('home');
   const [petsOrder, setPetsOrder] = useState<string[]>([]); // For Card Stack order
+  const dietMessagesRef = useRef<Record<string, string>>({});
 
   // Sync petsOrder when pets are loaded or updated
   useEffect(() => {
@@ -334,7 +335,7 @@ export default function DashboardPage() {
         .from('activities')
         .select('id, type, details, timestamp, pets(name), profiles(nickname)')
         .in('pet_id', petIds)
-        .neq('user_id', prof.id)
+        .or(`user_id.neq.${prof.id},type.eq.시스템 알림`)
         .gt('timestamp', lastCheck)
         .order('timestamp', { ascending: false })
         .limit(10);
@@ -678,12 +679,15 @@ export default function DashboardPage() {
         }])
         .select('*, pets(name), profiles(nickname)');
 
+      const justReceivedEgg = newActiveDays >= 7 && newHeartPoints >= 100 && !family.is_egg_received;
+
       const familyPromise = supabase
         .from('families')
         .update({
           heart_points: newHeartPoints,
           active_days_count: newActiveDays,
-          last_activity_date: today
+          last_activity_date: today,
+          ...(justReceivedEgg ? { is_egg_received: true } : {})
         })
         .eq('id', family.id);
 
@@ -702,9 +706,29 @@ export default function DashboardPage() {
           ...profile.families,
           heart_points: newHeartPoints,
           active_days_count: newActiveDays,
-          last_activity_date: today
+          last_activity_date: today,
+          ...(justReceivedEgg ? { is_egg_received: true } : {})
         }
       });
+
+      if (justReceivedEgg) {
+        await supabase.from('activities').insert([{
+           pet_id: selectedPetId,
+           user_id: user.id,
+           type: '시스템 알림',
+           details: '미지의 공간이 오픈되었습니다.',
+           timestamp: new Date().toISOString()
+        }]);
+        setNotificationCount(prev => prev + 1);
+        setRecentNotifications(prev => [{
+            id: 'sys_' + Date.now(),
+            type: '시스템 알림',
+            details: '미지의 공간이 오픈되었습니다.',
+            timestamp: new Date().toISOString(),
+            profiles: { nickname: 'Zipsa' },
+            pets: { name: '시스템' }
+        }, ...prev]);
+      }
 
       setEggVibrate(v => v + 1);
       setRecordingType(null);
@@ -1327,23 +1351,29 @@ export default function DashboardPage() {
             </div>
           )}
           {recordStep === 1 ? (
-            <div className="space-y-10">
+            <div className="space-y-6">
               <div className="space-y-4 text-center">
                 <h2 className="text-2xl font-light tracking-tight">
-                  {selectedPet?.name || '아이'}가 오늘 <span className="font-normal text-black underline underline-offset-8 decoration-zinc-100">맛있는 간식</span>을 먹었나요?
+                  {selectedPet?.name || '아이'}가 <span className="font-normal text-black underline underline-offset-8 decoration-zinc-100">무슨 간식</span>을 먹었나요?
                 </h2>
-                <p className="text-[11px] text-[#888888] pt-2">무슨 간식을 먹었는지 적어주세요.</p>
+                {selectedPet?.diet_mode && (
+                  <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} className="pt-3">
+                    <span className="inline-block bg-red-50 text-red-500 text-[11px] font-bold px-3 py-1.5 rounded-full ring-1 ring-red-100 shadow-sm">
+                      🚨 다이어트 중으로 간식은 안돼!
+                    </span>
+                  </motion.div>
+                )}
               </div>
-              <div className="space-y-8">
+              <div className="space-y-6">
                 <input
                   autoFocus
                   type="text"
                   placeholder="예: 츄르, 북어 트릿, 닭가슴살 등"
-                  className="w-full text-xl font-light border-b border-zinc-100 focus:border-black focus:ring-0 py-4 placeholder:text-zinc-200 text-center"
+                  className="w-full text-xl font-light border-b border-zinc-100 focus:border-black focus:ring-0 py-2 placeholder:text-zinc-200 text-center"
                   value={recordData.memo}
                   onChange={(e) => setRecordData({ ...recordData, memo: e.target.value })}
                 />
-                <div className="flex gap-3 pt-6">
+                <div className="flex gap-3 pt-2">
                   <button onClick={() => setRecordingType(null)} className="flex-1 py-4 text-xs font-medium border border-zinc-100 rounded-xl hover:bg-zinc-50 transition-colors uppercase tracking-widest text-[#888888]">취소</button>
                   <button disabled={!recordData.memo} onClick={() => { if (!recordData.amountUnit || recordData.amountUnit === 'g') setRecordData({ ...recordData, amountUnit: '개' }); setRecordStep(2); }} className="flex-[2] py-5 text-sm font-semibold bg-black text-white rounded-2xl shadow-xl shadow-black/10 active:scale-[0.98] transition-all disabled:bg-zinc-100 disabled:shadow-none">다음으로</button>
                 </div>
@@ -1434,12 +1464,18 @@ export default function DashboardPage() {
                           recentNotifications.map(n => (
                             <div key={n.id} className="p-3 hover:bg-zinc-50/80 rounded-2xl transition-colors space-y-1.5 flex gap-3 items-start group">
                               <div className="w-8 h-8 rounded-full bg-zinc-50 border border-zinc-100 flex items-center justify-center shrink-0">
-                                <span className="text-[10px] font-semibold">{n.profiles?.nickname?.[0] || '가'}</span>
+                                <span className="text-[10px] font-semibold">{n.type === '시스템 알림' ? '✨' : (n.profiles?.nickname?.[0] || '가')}</span>
                               </div>
                               <div className="space-y-0.5">
-                                <p className="text-[11px] text-zinc-800 leading-tight">
-                                  <span className="font-semibold">{n.profiles?.nickname || '가족'}</span>님이 <span className="font-semibold">{n.pets?.name}</span>의 <span className="text-black font-semibold bg-zinc-100 px-1 rounded">{n.type}</span> 기록을 남겼습니다.
-                                </p>
+                                {n.type === '시스템 알림' ? (
+                                  <p className="text-[11px] text-zinc-800 leading-tight font-semibold">
+                                    {n.details}
+                                  </p>
+                                ) : (
+                                  <p className="text-[11px] text-zinc-800 leading-tight">
+                                    <span className="font-semibold">{n.profiles?.nickname || '가족'}</span>님이 <span className="font-semibold">{n.pets?.name}</span>의 <span className="text-black font-semibold bg-zinc-100 px-1 rounded">{n.type}</span> 기록을 남겼습니다.
+                                  </p>
+                                )}
                                 <p className="text-[9px] text-[#888888] font-mono pt-1 group-hover:text-black transition-colors">{new Date(n.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</p>
                               </div>
                             </div>
@@ -1709,16 +1745,19 @@ export default function DashboardPage() {
             <motion.section initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} className="space-y-12 pb-40">
               <div className="space-y-3">
                 <span className="text-[10pt] tracking-[0.3em] text-[#888888] uppercase font-pixel">포켓룸</span>
-                <div className={`relative aspect-video sm:aspect-[21/9] border-[1px] rounded-2xl overflow-hidden flex items-center justify-center group shadow-2xl transition-all duration-1000 ${(family.heart_points || 0) === 0
+                <div className={`relative aspect-video sm:aspect-[21/9] border-[1px] rounded-2xl overflow-hidden flex items-center justify-center group shadow-2xl transition-all duration-1000 ${(!family.is_egg_received && ((family.heart_points || 0) < 100 || (family.active_days_count || 0) < 7))
                     ? 'bg-[#0A0A0A] border-zinc-800 shadow-black/40'
                     : 'bg-white border-zinc-900 shadow-zinc-100'
                   }`}>
-                  {(family.heart_points || 0) === 0 ? (
+                  {(!family.is_egg_received && ((family.heart_points || 0) < 100 || (family.active_days_count || 0) < 7)) ? (
                     <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="flex flex-col items-center gap-4 text-center px-8">
                       <motion.div animate={{ opacity: [0.3, 0.6, 0.3], scale: [1, 1.05, 1] }} transition={{ duration: 4, repeat: Infinity }} className="text-3xl filter grayscale opacity-50">✨</motion.div>
-                      <div className="space-y-1">
+                      <div className="space-y-2">
                         <p className="text-[11pt] font-pixel text-zinc-500 tracking-[0.2em] uppercase">Private Space</p>
-                        <p className="text-[10pt] font-pixel text-zinc-700 tracking-tighter">기록이 쌓이면 생명의 알이 찾아옵니다</p>
+                        <p className="text-[9pt] font-pixel text-zinc-700 tracking-tighter leading-relaxed">
+                          7일간 정성껏 기록을 쌓으면 미지의 공간이 열립니다<br/>
+                          <span className="text-zinc-600">(현재: {family.active_days_count || 0}일 / {family.heart_points || 0}%)</span>
+                        </p>
                       </div>
                     </motion.div>
                   ) : (
@@ -1765,9 +1804,6 @@ export default function DashboardPage() {
                   )}
                 </div>
               </div>
-              {(family.heart_points >= 100 && family.active_days_count >= 7 && !family.is_hatched) && (
-                <motion.button initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }} onClick={async () => { const { error } = await supabase.from('families').update({ is_hatched: true }).eq('id', family.id); if (!error) { setProfile({ ...profile, families: { ...family, is_hatched: true } }); } }} className="w-full py-6 bg-black text-white rounded-2xl text-xs font-semibold uppercase tracking-[0.4em] shadow-2xl shadow-black/20">기록의 결실: 부화하기</motion.button>
-              )}
             </motion.section>
           );
         })()}
@@ -1842,10 +1878,15 @@ export default function DashboardPage() {
                           <motion.div 
                             initial={{ opacity: 0, scale: 0.8, y: -10 }}
                             animate={{ opacity: 1, scale: 1, y: 0 }}
-                            className="absolute top-[calc(100%+12px)] left-1/2 -translate-x-1/2 z-50 px-3 py-2 bg-white border border-black shadow-[0_8px_20px_rgba(0,0,0,0.12)] rounded-2xl whitespace-nowrap"
+                            className="absolute top-[calc(100%+20px)] left-1/2 -translate-x-1/2 z-50 px-3 py-1 flex items-center justify-center bg-white border border-black shadow-[0_8px_20px_rgba(0,0,0,0.12)] rounded-2xl whitespace-nowrap"
                           >
-                            <span className="text-[10px] font-bold tracking-tight text-black">
-                              {DIET_MESSAGES[Math.abs(pet.id.split('').reduce((acc, char) => acc + char.charCodeAt(0), 0)) % DIET_MESSAGES.length]}
+                            <span className="text-[10px] font-bold tracking-tight text-black leading-none pt-0.5">
+                              {(() => {
+                                if (!dietMessagesRef.current[pet.id]) {
+                                  dietMessagesRef.current[pet.id] = DIET_MESSAGES[Math.floor(Math.random() * DIET_MESSAGES.length)];
+                                }
+                                return dietMessagesRef.current[pet.id];
+                              })()}
                             </span>
                             {/* Triangle Pointer (Top side, pointing at card) */}
                             <div className="absolute -top-1.5 left-1/2 w-2.5 h-2.5 bg-white border-l border-t border-black rotate-45 -translate-x-1/2" />
