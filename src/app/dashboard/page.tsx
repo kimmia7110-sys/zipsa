@@ -1374,7 +1374,9 @@ export default function DashboardPage() {
   return (
     <main className="min-h-screen bg-white">
       <nav className="flex justify-between items-center px-6 py-8">
-        <Link href="/dashboard" className="text-xl font-light tracking-tighter">집착</Link>
+        <Link href="/dashboard">
+          <img src="/images/로고.jpg" alt="집사" className="h-10 w-auto object-contain hover:opacity-80 transition-opacity" />
+        </Link>
         <div className="flex items-center gap-6 relative">
           <div className="flex items-center gap-4 pr-4 border-r border-zinc-100">
             <div className="relative">
