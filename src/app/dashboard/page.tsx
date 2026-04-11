@@ -1825,13 +1825,13 @@ export default function DashboardPage() {
                   {/* Navigation Arrows */}
                   <button 
                     onClick={() => handleSwipe('right')}
-                    className="absolute -left-4 sm:-left-12 top-1/2 -translate-y-1/2 z-[60] text-zinc-400 hover:text-black transition-all hover:scale-110 active:scale-95 p-2"
+                    className="absolute -left-4 sm:-left-12 top-1/2 -translate-y-1/2 z-20 text-zinc-400 hover:text-black transition-all hover:scale-110 active:scale-95 p-2"
                   >
                     <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="m15 18-6-6 6-6"/></svg>
                   </button>
                   <button 
                     onClick={() => handleSwipe('left')}
-                    className="absolute -right-4 sm:-right-12 top-1/2 -translate-y-1/2 z-[60] text-zinc-400 hover:text-black transition-all hover:scale-110 active:scale-95 p-2"
+                    className="absolute -right-4 sm:-right-12 top-1/2 -translate-y-1/2 z-20 text-zinc-400 hover:text-black transition-all hover:scale-110 active:scale-95 p-2"
                   >
                     <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="m9 18 6-6-6-6"/></svg>
                   </button>
@@ -2281,7 +2281,7 @@ export default function DashboardPage() {
         )}
 
         {isDatePickerOpen && (
-          <div className="fixed inset-0 bg-black/40 backdrop-blur-sm z-[60] flex items-center justify-center p-6 animate-in fade-in duration-300">
+          <div className="fixed inset-0 bg-black/40 backdrop-blur-sm z-[110] flex items-center justify-center p-6 animate-in fade-in duration-300">
             <motion.div
               initial={{ opacity: 0, scale: 0.9, y: 20 }}
               animate={{ opacity: 1, scale: 1, y: 0 }}
@@ -2415,7 +2415,7 @@ export default function DashboardPage() {
         )}
 
         {recordingType && (
-          <div className="fixed inset-0 bg-black/40 backdrop-blur-sm z-50 flex items-center justify-center p-6 animate-in fade-in duration-300">
+          <div className="fixed inset-0 bg-black/40 backdrop-blur-sm z-[110] flex items-center justify-center p-6 animate-in fade-in duration-300">
             <div className="bg-white w-full max-w-[450px] rounded-[32px] p-8 space-y-10 shadow-2xl animate-in zoom-in-95 duration-500">
               <div className="flex justify-between items-center"><span className="text-[10px] tracking-widest text-[#888888] uppercase font-mono">{recordingType} — {recordStep} / {recordingType === '밥 먹이기' ? 2 : (recordingType === '산책하기' || recordingType === '사냥놀이하기' ? 3 : 2)}</span><button onClick={() => setRecordingType(null)} className="text-zinc-300 hover:text-black"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M18 6L6 18M6 6l12 12" /></svg></button></div>
               {renderRecordFlow()}
@@ -2424,7 +2424,7 @@ export default function DashboardPage() {
         )}
 
         {editingActivity && (
-          <div className="fixed inset-0 bg-black/40 backdrop-blur-sm z-50 flex items-center justify-center p-6 animate-in fade-in duration-300">
+          <div className="fixed inset-0 bg-black/40 backdrop-blur-sm z-[110] flex items-center justify-center p-6 animate-in fade-in duration-300">
             <div className="bg-white w-full max-w-[400px] rounded-3xl p-8 space-y-8 shadow-2xl animate-in zoom-in-95 duration-300">
               <div className="space-y-2">
                 <span className="text-[10px] tracking-widest text-[#888888] uppercase font-mono">기록 수정 — {editingActivity.type}</span>
