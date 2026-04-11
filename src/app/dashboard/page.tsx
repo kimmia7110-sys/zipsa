@@ -1693,8 +1693,6 @@ export default function DashboardPage() {
         {activeBottomTab === 'pocket' && (() => {
           const family = profile?.families;
           if (!family) return null;
-          const today = new Date().toISOString().split('T')[0];
-          const activitiesToday = activities.filter(a => a.timestamp.startsWith(today));
           return (
             <motion.section initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} className="space-y-12 pb-40">
               <div className="space-y-3">
@@ -1716,36 +1714,39 @@ export default function DashboardPage() {
                       <div className="absolute top-6 left-8 flex flex-col gap-1.5">
                         <div className="flex items-center gap-2">
                           <div className="w-1.5 h-1.5 rounded-full bg-red-500 animate-pulse" />
-                          {isEditingTamagotchi ? (
-                            <div className="flex items-center gap-2 animate-in slide-in-from-left-1 duration-300">
-                              <input
-                                autoFocus
-                                type="text"
-                                className="text-[10pt] font-pixel bg-white border border-black px-1.5 py-0.5 rounded-sm outline-none w-24 tracking-widest uppercase font-semibold"
-                                value={tamagotchiNameDraft}
-                                onChange={(e) => setTamagotchiNameDraft(e.target.value)}
-                                onKeyDown={(e) => e.key === 'Enter' && handleUpdateTamagotchiName()}
-                                placeholder="이름 입력"
-                              />
-                              <button onClick={handleUpdateTamagotchiName} className="text-[10pt] text-[#1A1A1A] font-semibold uppercase transition-transform hover:scale-105">SAVE</button>
-                              <button onClick={() => setIsEditingTamagotchi(false)} className="text-[10pt] text-[#888888] uppercase transition-transform hover:scale-105">ESC</button>
-                            </div>
-                          ) : (
-                            <div className="flex items-center gap-3 group relative">
-                              <span className="text-[11pt] font-pixel text-[#1A1A1A] tracking-widest uppercase font-semibold">{family.tamagotchi_name || '?'}</span>
-                              {(!family.tamagotchi_name || family.tamagotchi_name === '?') && (
-                                <button onClick={() => { setTamagotchiNameDraft(''); setIsEditingTamagotchi(true); }} className="text-[10pt] text-zinc-300 hover:text-black transition-colors opacity-0 group-hover:opacity-100 uppercase tracking-tighter font-pixel">이름짓기</button>
-                              )}
-                            </div>
-                          )}
+                          <div className="flex items-center gap-2">
+                            <span className="text-[10pt] font-pixel tracking-widest uppercase font-semibold text-black">
+                              {family.tamagotchi_name || '집사의 정령'}
+                            </span>
+                          </div>
                         </div>
-                        <span className="text-[10pt] text-[#888888] font-pixel tracking-tighter">상태: {family.is_hatched ? '부화함' : '대기 중'}</span>
+                        <span className="text-[8pt] font-pixel text-[#888888] tracking-widest uppercase pl-3.5">
+                          상태: {family.is_hatched ? '부화함' : '대기 중'}
+                        </span>
+                      </div>
+
+                      <div className="flex flex-col items-center gap-8">
+                        <motion.div 
+                          animate={family.is_hatched 
+                            ? { y: [0, -10, 0], transition: { duration: 3, repeat: Infinity } }
+                            : { 
+                                rotate: [0, -5, 5, 0], 
+                                scale: [1, 1.05, 1],
+                                transition: { duration: 4, repeat: Infinity } 
+                              }
+                          }
+                          className="text-7xl sm:text-8xl filter drop-shadow-2xl cursor-pointer"
+                          onClick={() => setEggVibrate(v => v + 1)}
+                        >
+                          {family.is_hatched ? '👾' : '🥚'}
+                        </motion.div>
                       </div>
 
                       <div className="absolute bottom-6 left-8 right-8 flex justify-between items-end">
                         <div className="space-y-4 w-full max-w-[140px]">
                           <div className="flex justify-between items-end">
                             <span className="text-[11pt] filter grayscale group-hover:grayscale-0 transition-all">❤️</span>
+                            <span className="text-[10pt] font-pixel text-black font-semibold">{family.heart_points || 0}%</span>
                           </div>
                           <div className="h-[3px] w-full bg-zinc-50 rounded-full overflow-hidden">
                             <motion.div initial={{ width: 0 }} animate={{ width: `${family.heart_points || 0}%` }} className="h-full bg-black" />
@@ -1763,19 +1764,36 @@ export default function DashboardPage() {
           );
         })()}
 
+
         {activeBottomTab === 'home' && (
           <>
             <section className="space-y-12">
               <div className="flex justify-between items-end">
                 <div className="space-y-1">
-                  <h3 className="text-[13pt] tracking-widest text-[#1A1A1A] uppercase font-semibold">아이 프로필</h3>
-                  <p className="text-[10pt] text-[#888888] uppercase tracking-widest font-medium">옆으로 밀어서 선택하세요</p>
+                  <h3 className="text-[13pt] tracking-widest text-[#1A1A1A] uppercase font-semibold">우리 아이들</h3>
+                  <p className="text-[10pt] text-[#888888] font-light">카드를 넘겨서 다른 아이를 확인하세요</p>
                 </div>
-                <Link href="/dashboard/add-pet" className="text-[10pt] text-zinc-300 underline underline-offset-4 decoration-[0.5px] hover:text-[#1A1A1A] transition-colors">아이 추가하기</Link>
               </div>
 
-              <div className="relative h-[280px] sm:h-[320px] flex items-center justify-center -mx-6 perspective-[1000px]">
-                <AnimatePresence mode="popLayout">
+              <div className="relative flex items-center justify-center h-[280px] sm:h-[320px]">
+                {/* Card Stack & Navigation Container */}
+                <div className="relative w-full max-w-[320px] sm:max-w-[420px] mx-auto">
+                  {/* Navigation Arrows */}
+                  <button 
+                    onClick={() => handleSwipe('right')}
+                    className="absolute -left-4 sm:-left-12 top-1/2 -translate-y-1/2 z-[60] text-zinc-400 hover:text-black transition-all hover:scale-110 active:scale-95 p-2"
+                  >
+                    <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="m15 18-6-6 6-6"/></svg>
+                  </button>
+                  <button 
+                    onClick={() => handleSwipe('left')}
+                    className="absolute -right-4 sm:-right-12 top-1/2 -translate-y-1/2 z-[60] text-zinc-400 hover:text-black transition-all hover:scale-110 active:scale-95 p-2"
+                  >
+                    <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="m9 18 6-6-6-6"/></svg>
+                  </button>
+
+                  <div className="relative h-[280px] sm:h-[320px] flex items-center justify-center perspective-[1000px]">
+                    <AnimatePresence mode="popLayout">
                   {petsOrder.slice(0, 3).map((id, index) => {
                     const isTop = index === 0;
                     const pet = pets.find(p => p.id === id);
@@ -1803,12 +1821,28 @@ export default function DashboardPage() {
                         drag={isTop ? "x" : false}
                         dragConstraints={{ left: 0, right: 0 }}
                         onDragEnd={(_, info) => {
-                          if (Math.abs(info.offset.x) > 100) {
+                          const swipeThreshold = 50;
+                          const velocityThreshold = 500;
+                          if (Math.abs(info.offset.x) > swipeThreshold || Math.abs(info.velocity.x) > velocityThreshold) {
                             handleSwipe(info.offset.x > 0 ? 'right' : 'left');
                           }
                         }}
-                        className={`absolute w-[220px] sm:w-[260px] aspect-[4/5] bg-white rounded-[32px] border border-zinc-100 shadow-[0_20px_40px_rgba(0,0,0,0.06)] overflow-hidden cursor-grab active:cursor-grabbing p-6 flex flex-col ${isTop ? 'ring-1 ring-black/5' : ''}`}
+                        className={`absolute w-[220px] sm:w-[260px] aspect-[4/5] bg-white rounded-[32px] border border-zinc-100 shadow-[0_20px_40px_rgba(0,0,0,0.06)] cursor-grab active:cursor-grabbing p-6 flex flex-col ${isTop ? 'ring-1 ring-black/5' : ''}`}
                       >
+                        {/* Diet Mode Speech Bubble - Relocated to Bottom for Mobile */}
+                        {pet?.diet_mode && index === 0 && (
+                          <motion.div 
+                            initial={{ opacity: 0, scale: 0.8, y: -10 }}
+                            animate={{ opacity: 1, scale: 1, y: 0 }}
+                            className="absolute top-[calc(100%+20px)] left-1/2 -translate-x-1/2 z-50 px-3 py-2 bg-white border border-black shadow-[0_8px_20px_rgba(0,0,0,0.12)] rounded-2xl whitespace-nowrap"
+                          >
+                            <span className="text-[10px] font-bold tracking-tight text-black">
+                              {DIET_MESSAGES[Math.abs(pet.id.split('').reduce((acc, char) => acc + char.charCodeAt(0), 0)) % DIET_MESSAGES.length]}
+                            </span>
+                            {/* Triangle Pointer (Top side, pointing at card) */}
+                            <div className="absolute -top-1.5 left-1/2 w-2.5 h-2.5 bg-white border-l border-t border-black rotate-45 -translate-x-1/2" />
+                          </motion.div>
+                        )}
                         {isAddCard ? (
                           <Link href="/dashboard/add-pet" className="w-full h-full flex flex-col items-center justify-center gap-6 group">
                             <div className="w-16 h-16 rounded-full bg-zinc-50 border border-dashed border-zinc-200 flex items-center justify-center group-hover:bg-black group-hover:text-white transition-all duration-500">
@@ -1822,20 +1856,6 @@ export default function DashboardPage() {
                         ) : (
                           <>
                             <div className="aspect-square w-full rounded-2xl overflow-hidden bg-zinc-50 border border-zinc-100 shadow-inner relative">
-                              {/* Diet Mode Speech Bubble */}
-                              {pet?.diet_mode && (
-                                <motion.div 
-                                  initial={{ opacity: 0, scale: 0.8, y: 10, x: '-50%' }}
-                                  animate={{ opacity: 1, scale: 1, y: 0, x: '-50%' }}
-                                  className="absolute top-3 left-1/2 z-20 px-3 py-1.5 bg-white border border-black shadow-[0_4px_12px_rgba(0,0,0,0.1)] rounded-xl whitespace-nowrap"
-                                >
-                                  <span className="text-[10px] font-bold tracking-tight text-black">
-                                    {DIET_MESSAGES[Math.abs(pet.id.split('').reduce((acc, char) => acc + char.charCodeAt(0), 0)) % DIET_MESSAGES.length]}
-                                  </span>
-                                  {/* Triangle Pointer */}
-                                  <div className="absolute -bottom-1 left-1/2 w-2 h-2 bg-white border-r border-b border-black rotate-45 -translate-x-1/2" />
-                                </motion.div>
-                              )}
                               {pet?.photo_url ? (
                                 <img src={pet.photo_url} alt={pet.name} className="w-full h-full object-cover" />
                               ) : (
@@ -1865,7 +1885,9 @@ export default function DashboardPage() {
                   })}
                 </AnimatePresence>
               </div>
-            </section>
+            </div>
+          </div>
+        </section>
 
             <section className="pt-12 pb-4 space-y-8">
               <h3 className="text-[13pt] tracking-widest text-[#1A1A1A] uppercase font-semibold">🗒️ 오늘 하루를 기록해주세요!</h3>
