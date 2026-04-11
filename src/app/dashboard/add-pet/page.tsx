@@ -18,7 +18,7 @@ const PixelCharacter = ({ color = "black" }: { color?: string }) => (
 );
 
 const BREED_DATA: Record<string, string[]> = {
-  dog: ['말티즈', '푸들', '포메라니안', '치와와', '시바견', '골든 리트리버', '진돗개', '비숑 프리제', '웰시코기', '기타'],
+  dog: ['말티즈', '푸들', '포메라니안', '치와와', '시고르자브종', '시바견', '골든 리트리버', '진돗개', '비숑 프리제', '웰시코기', '기타'],
   cat: ['코리안 숏헤어', '페르시안', '러시안 블루', '샴', '스코티쉬 폴드', '먼치킨', '뱅갈', '랙돌', '브리티시 숏헤어', '기타']
 };
 
@@ -36,6 +36,8 @@ export default function AddPetPage() {
   const [isDone, setIsDone] = useState(false);
   const [loading, setLoading] = useState(false);
   const [medications, setMedications] = useState<any[]>([]);
+  const [weight, setWeight] = useState("");
+  const [dietMode, setDietMode] = useState(false);
 
   const addMedicationItem = () => {
     setMedications([...medications, { id: Date.now().toString(), name: '', frequency: '', notes: '' }]);
@@ -127,6 +129,8 @@ export default function AddPetPage() {
           adoption_date: adoptionDate || null,
           gender: gender,
           medications: medications,
+          weight: weight ? parseFloat(weight) : null,
+          diet_mode: dietMode
         }]);
 
       if (insertError) throw insertError;
@@ -181,7 +185,7 @@ export default function AddPetPage() {
           <div className="space-y-10">
             {/* Name */}
             <div className="group">
-              <h3 className="text-lg font-normal text-black mb-4 tracking-tight">아이 이름</h3>
+              <h3 className="text-lg font-normal text-black mb-4 tracking-tight">아이 이름 *</h3>
               <input
                 type="text"
                 required
@@ -195,7 +199,7 @@ export default function AddPetPage() {
             {/* Species Selection */}
             <div className="space-y-6">
               <div className="group">
-                <h3 className="text-lg font-normal text-black mb-4 tracking-tight">종류</h3>
+                <h3 className="text-lg font-normal text-black mb-4 tracking-tight">종류 *</h3>
                 <select
                   required
                   value={mainCategory}
@@ -248,6 +252,40 @@ export default function AddPetPage() {
                   />
                 </div>
               )}
+
+              {/* Weight and Diet Mode */}
+              <div className="grid grid-cols-2 gap-8 pt-4">
+                <div className="group">
+                  <h3 className="text-lg font-normal text-black mb-4 tracking-tight">몸무게</h3>
+                  <div className="flex items-center gap-2 border-b border-zinc-100 focus-within:border-black transition-colors">
+                    <input
+                      type="number"
+                      step="0.1"
+                      value={weight}
+                      onChange={(e) => setWeight(e.target.value)}
+                      className="w-full py-4 text-base font-light bg-transparent outline-none"
+                      placeholder="0.0"
+                    />
+                    <span className="text-sm text-zinc-300 font-light">kg</span>
+                  </div>
+                </div>
+
+                <div className="group">
+                  <h3 className="text-lg font-normal text-black mb-4 tracking-tight">다이어트 모드</h3>
+                  <div className="flex items-center h-[57px]">
+                    <button
+                      type="button"
+                      onClick={() => setDietMode(!dietMode)}
+                      className={`relative w-12 h-6 rounded-full transition-colors duration-300 ${dietMode ? 'bg-black' : 'bg-zinc-100'}`}
+                    >
+                      <div className={`absolute top-1 w-4 h-4 bg-white rounded-full transition-transform duration-300 ${dietMode ? 'translate-x-7' : 'translate-x-1'}`} />
+                    </button>
+                    <span className={`ml-3 text-xs font-medium tracking-widest uppercase ${dietMode ? 'text-black' : 'text-zinc-300'}`}>
+                      {dietMode ? 'ON' : 'OFF'}
+                    </span>
+                  </div>
+                </div>
+              </div>
             </div>
 
             {/* Additional Details */}

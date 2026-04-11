@@ -29,6 +29,8 @@ interface Pet {
   active_days_count: number;
   last_activity_date: string | null;
   is_hatched: boolean;
+  weight?: number;
+  diet_mode?: boolean;
   created_at?: string;
 }
 
@@ -42,6 +44,16 @@ interface Activity {
   pets?: { name: string };
   profiles?: { nickname: string };
 }
+
+const DIET_MESSAGES = [
+  "꼬르륵... 소리 들려? 💨",
+  "지금 다이어트 중이야! 🥗",
+  "간식 참는 중... 대견하지? ✨",
+  "날씬해질 거야! 지켜봐 줘 💨",
+  "몸무게 재는 건 무서워.. 💦",
+  "배고프지만 참아볼게! 🔥",
+  "오늘도 날씬함 한 스푼 추가! 🥄"
+];
 
 export default function DashboardPage() {
   const router = useRouter();
@@ -1810,6 +1822,20 @@ export default function DashboardPage() {
                         ) : (
                           <>
                             <div className="aspect-square w-full rounded-2xl overflow-hidden bg-zinc-50 border border-zinc-100 shadow-inner relative">
+                              {/* Diet Mode Speech Bubble */}
+                              {pet?.diet_mode && (
+                                <motion.div 
+                                  initial={{ opacity: 0, scale: 0.8, y: 10, x: '-50%' }}
+                                  animate={{ opacity: 1, scale: 1, y: 0, x: '-50%' }}
+                                  className="absolute top-3 left-1/2 z-20 px-3 py-1.5 bg-white border border-black shadow-[0_4px_12px_rgba(0,0,0,0.1)] rounded-xl whitespace-nowrap"
+                                >
+                                  <span className="text-[10px] font-bold tracking-tight text-black">
+                                    {DIET_MESSAGES[Math.abs(pet.id.split('').reduce((acc, char) => acc + char.charCodeAt(0), 0)) % DIET_MESSAGES.length]}
+                                  </span>
+                                  {/* Triangle Pointer */}
+                                  <div className="absolute -bottom-1 left-1/2 w-2 h-2 bg-white border-r border-b border-black rotate-45 -translate-x-1/2" />
+                                </motion.div>
+                              )}
                               {pet?.photo_url ? (
                                 <img src={pet.photo_url} alt={pet.name} className="w-full h-full object-cover" />
                               ) : (
