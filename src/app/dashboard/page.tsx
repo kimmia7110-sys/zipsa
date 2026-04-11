@@ -219,17 +219,17 @@ export default function DashboardPage() {
         });
       }
 
-      // 3. Heart > 100 
+      // 3. Heart > 35 
       const family = typeof profile.families === 'object' ? profile.families : undefined;
       const heartPoints = family?.heart_points || 0;
-      if (heartPoints >= 100) {
+      if (heartPoints >= 35) {
         letters.push({
           id: `heart100-${pet.id}`,
           petId: pet.id,
           petName: pet.name,
           petPhoto: pet.photo_url || null,
           title: '내 마음이 느껴져? 💕',
-          content: `요즘 ${ownerName}가 나 엄청 챙겨주는 거 다 알고 있다구. 밥도 주고 놀아줘서 내 마음속 하트가 100% 꽉 찼어! 빵빵해! ${ownerName} 냄새 맡으면서 잘 때가 제일 좋아. 진짜 진짜 고마워!\n\n- 사랑 듬뿍 받은 ${pet.name}`,
+          content: `요즘 ${ownerName}가 나 엄청 챙겨주는 거 다 알고 있다구. 밥도 주고 놀아줘서 내 마음속 하트가 35개 꽉 찼어! 빵빵해! ${ownerName} 냄새 맡으면서 잘 때가 제일 좋아. 진짜 진짜 고마워!\n\n- 사랑 듬뿍 받은 ${pet.name}`,
           date: new Date(Date.now() - 1000 * 60 * 60 * 24).toISOString(),
           isSpecial: true
         });
@@ -651,22 +651,27 @@ export default function DashboardPage() {
       const family = profile.families;
 
       const today = new Date().toISOString().split('T')[0];
-      const activitiesToday = activities.filter(a =>
-        a.timestamp.startsWith(today) &&
-        a.type === recordingType
-      );
+      const petIds = pets.map(p => p.id);
+      
+      const { count: activitiesTodayCount, error: countErr } = await supabase
+        .from('activities')
+        .select('*', { count: 'exact', head: true })
+        .in('pet_id', petIds)
+        .like('timestamp', `${today}%`);
+
+      if (countErr) throw countErr;
 
       let pointsToAdd = 0;
-      if (recordingType === '밥 먹이기' && activitiesToday.length < 3) pointsToAdd = 5;
-      else if ((recordingType === '산책하기' || recordingType === '사냥놀이하기' || recordingType === '자유시간주기' || recordingType === '운동시키기') && activitiesToday.length < 3) pointsToAdd = 10;
-      else if (recordingType === '간식 먹이기' && activitiesToday.length < 2) pointsToAdd = 5;
+      if (activitiesTodayCount !== null && activitiesTodayCount < 5) {
+        pointsToAdd = 1;
+      }
 
       let newActiveDays = family.active_days_count || 0;
       if (family.last_activity_date !== today) {
         newActiveDays = Math.min(7, newActiveDays + 1);
       }
 
-      const newHeartPoints = Math.min(100, (family.heart_points || 0) + pointsToAdd);
+      const newHeartPoints = Math.min(35, (family.heart_points || 0) + pointsToAdd);
 
       const activityPromise = supabase
         .from('activities')
@@ -679,7 +684,7 @@ export default function DashboardPage() {
         }])
         .select('*, pets(name), profiles(nickname)');
 
-      const justReceivedEgg = newActiveDays >= 7 && newHeartPoints >= 100 && !family.is_egg_received;
+      const justReceivedEgg = newActiveDays >= 7 && newHeartPoints >= 35 && !family.is_egg_received;
 
       const familyPromise = supabase
         .from('families')
@@ -753,25 +758,22 @@ export default function DashboardPage() {
       const family = profile?.families;
 
       if (isToday && family) {
+        const petIds = pets.map(p => p.id);
+        const { count: activitiesTodayCount } = await supabase
+          .from('activities')
+          .select('*', { count: 'exact', head: true })
+          .in('pet_id', petIds)
+          .like('timestamp', `${today}%`);
+
         let pointsToDeduct = 0;
-        const type = activityToDelete.type;
-
-        const othersOfSameTypeToday = activities.filter(a =>
-          a.id !== id &&
-          a.timestamp.startsWith(today) &&
-          a.type === type
-        );
-
-        if (type === '밥 먹이기' && othersOfSameTypeToday.length < 3) pointsToDeduct = 5;
-        else if ((type === '산책하기' || type === '사냥놀이하기' || type === '자유시간주기' || type === '운동시키기') && othersOfSameTypeToday.length < 3) pointsToDeduct = 10;
-        else if (type === '간식 먹이기' && othersOfSameTypeToday.length < 2) pointsToDeduct = 5;
-
-        const anyOthersToday = activities.filter(a => a.id !== id && a.timestamp.startsWith(today));
+        if (activitiesTodayCount !== null && activitiesTodayCount <= 5) {
+          pointsToDeduct = 1;
+        }
 
         let newActiveDays = family.active_days_count;
         let newLastDate = family.last_activity_date;
 
-        if (anyOthersToday.length === 0) {
+        if (activitiesTodayCount === 1) {
           newActiveDays = Math.max(0, (family.active_days_count || 0) - 1);
           newLastDate = null;
         }
@@ -1745,18 +1747,18 @@ export default function DashboardPage() {
             <motion.section initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} className="space-y-12 pb-40">
               <div className="space-y-3">
                 <span className="text-[10pt] tracking-[0.3em] text-[#888888] uppercase font-pixel">포켓룸</span>
-                <div className={`relative aspect-video sm:aspect-[21/9] border-[1px] rounded-2xl overflow-hidden flex items-center justify-center group shadow-2xl transition-all duration-1000 ${(!family.is_egg_received && ((family.heart_points || 0) < 100 || (family.active_days_count || 0) < 7))
+                <div className={`relative aspect-square border-[1px] rounded-2xl overflow-hidden flex items-center justify-center group shadow-2xl transition-all duration-1000 ${(!family.is_egg_received && ((family.heart_points || 0) < 35 || (family.active_days_count || 0) < 7))
                     ? 'bg-[#0A0A0A] border-zinc-800 shadow-black/40'
                     : 'bg-white border-zinc-900 shadow-zinc-100'
                   }`}>
-                  {(!family.is_egg_received && ((family.heart_points || 0) < 100 || (family.active_days_count || 0) < 7)) ? (
+                  {(!family.is_egg_received && ((family.heart_points || 0) < 35 || (family.active_days_count || 0) < 7)) ? (
                     <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="flex flex-col items-center gap-4 text-center px-8">
                       <motion.div animate={{ opacity: [0.3, 0.6, 0.3], scale: [1, 1.05, 1] }} transition={{ duration: 4, repeat: Infinity }} className="text-3xl filter grayscale opacity-50">✨</motion.div>
                       <div className="space-y-2">
                         <p className="text-[11pt] font-pixel text-zinc-500 tracking-[0.2em] uppercase">Private Space</p>
                         <p className="text-[9pt] font-pixel text-zinc-700 tracking-tighter leading-relaxed">
                           7일간 정성껏 기록을 쌓으면 미지의 공간이 열립니다<br/>
-                          <span className="text-zinc-600">(현재: {family.active_days_count || 0}일 / {family.heart_points || 0}%)</span>
+                          <span className="text-zinc-600">(현재: {family.active_days_count || 0}일 / 하트 {Math.min(35, family.heart_points || 0)}/35개)</span>
                         </p>
                       </div>
                     </motion.div>
